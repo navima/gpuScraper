@@ -39,12 +39,6 @@ internal partial class Program
         Console.WriteLine("Inserting articles");
         await db.Articles.AddRangeAsync(cheapests.ToList());
         db.SaveChanges();
-
-        Console.WriteLine("Querying for articles");
-        var articles = db.Articles
-            .OrderByDescending(a => a.InsertTime);
-
-        await articles.ForEachAsync(Console.WriteLine);
     }
 
     private static Task<string> GetPage(string url, HttpClient client)
