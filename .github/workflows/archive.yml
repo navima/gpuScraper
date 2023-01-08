@@ -1,0 +1,52 @@
+name: Scrape and Update
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+
+jobs:
+  doeverything:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout master
+      uses: actions/checkout@v3
+      with:
+        path: master
+        ref: master
+    - name: Checkout archive
+      uses: actions/checkout@v3
+      with:
+        path: archive
+        ref: archive
+    - name: Setup .NET
+      uses: actions/setup-dotnet@v3
+      with:
+        dotnet-version: 7.0.1
+    - name: Restore dependencies
+      run: dotnet restore master/gpuScraper
+    - name: Build
+      run: dotnet build --no-restore --project master/gpuScraper
+    - name: Copy archive.db
+      run: |
+        mv archive/archive.db master/gpuScraper
+    - name: cd to master
+      run: |
+        cd master
+    - name: Apply migrations to database
+      run: |
+        dotnet tool install --global dotnet-ef
+        dotnet ef database update --project master/gpuScraper
+    - name: Run
+      run: |
+        dotnet run --project master/gpuScraper
+    - name: Move archive.db back
+      run: |
+        mv master/gpuScraper/archive.db archive
+    - name: Commit changes to archive
+      uses: stefanzweifel/git-auto-commit-action@v4
+      with:
+        commit_message: Archive commit
+        branch: 'archive'
+        repository: 'archive'
