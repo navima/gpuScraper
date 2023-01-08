@@ -30,7 +30,7 @@ jobs:
       run: dotnet build --no-restore master/gpuScraper
     - name: Copy archive.db
       run: |
-        [ -f archive/archive.db ] && mv archive/archive.db master/gpuScraper
+        [ ! -f archive/archive.db ] || mv archive/archive.db master/gpuScraper
     - name: cd to master
       run: |
         cd master
