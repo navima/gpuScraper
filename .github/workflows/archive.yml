@@ -27,7 +27,7 @@ jobs:
     - name: Restore dependencies
       run: dotnet restore master/gpuScraper
     - name: Build
-      run: dotnet build --no-restore --project master/gpuScraper
+      run: dotnet build --no-restore master/gpuScraper
     - name: Copy archive.db
       run: |
         mv archive/archive.db master/gpuScraper
