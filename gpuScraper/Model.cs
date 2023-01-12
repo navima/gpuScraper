@@ -1,15 +1,12 @@
 ﻿using Microsoft.EntityFrameworkCore;
-using System;
-using System.Collections.Generic;
+
+namespace gpuScraper;
 
 public class ScraperContext : DbContext
 {
     public DbSet<Article> Articles { get; set; }
 
-    public string DbPath { get; } = "archive.db";
-    
-    protected override void OnConfiguring(DbContextOptionsBuilder options)
-    {
-        options.UseSqlite($"Data Source={DbPath}");
-    }
+    public static string DbPath => "archive.db";
+
+    protected override void OnConfiguring(DbContextOptionsBuilder options) => options.UseSqlite($"Data Source={DbPath}");
 }

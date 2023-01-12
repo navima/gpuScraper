@@ -22,4 +22,12 @@
     <Folder Include="Migrations\" />
   </ItemGroup>
 
+  <ItemGroup>
+    <EditorConfigFiles Remove="C:\Users\navima\source\repos\gpuScraper\gpuScraper\.editorconfig" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="C:\Users\navima\source\repos\gpuScraper\gpuScraper\.editorconfig" />
+  </ItemGroup>
+
 </Project>
