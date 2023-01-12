@@ -363,3 +363,13 @@ MigrationBackup/
 FodyWeavers.xsd
 
 *.csv
+
+gpuScraper/sqlite.net/
+
+gpuScraper/sqlite.zip
+
+gpuScraper/archive.db
+
+gpuScraper/archive.db-shm
+
+gpuScraper/archive.db-wal
