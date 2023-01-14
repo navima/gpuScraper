@@ -373,3 +373,7 @@ gpuScraper/archive.db
 gpuScraper/archive.db-shm
 
 gpuScraper/archive.db-wal
+
+*.db-shm
+
+*.db-wal
