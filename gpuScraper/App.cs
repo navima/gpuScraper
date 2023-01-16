@@ -34,7 +34,12 @@ internal partial class App
     {
         var parallelOptions = new ParallelOptions();
         var cheapests = new ConcurrentBag<Article>();
-        var requestsTime = await Time(Parallel.ForEachAsync(types, parallelOptions, async (type, _) => cheapests.Add(await GetCheapestArticleOfType(type))));
+        var requestsTime = await Time(Parallel.ForEachAsync(types, parallelOptions, async (type, _) =>
+        {
+            var cheapest = await GetCheapestArticleOfType(type);
+            if (cheapest != null)
+                cheapests.Add(cheapest);
+        }));
         Console.WriteLine($"Took: {requestsTime}");
         Console.WriteLine();
         Console.WriteLine($"Result:\n{string.Join("\n", cheapests.Select(art => $"{art.Type}:\t{art.Price}"))}");
@@ -42,13 +47,16 @@ internal partial class App
         return cheapests;
     }
 
-    private async Task<Article> GetCheapestArticleOfType(Type type)
+    private async Task<Article?> GetCheapestArticleOfType(Type type)
     {
         Console.WriteLine($"Fetching  {type.Name}...");
         var (pageContent, time) = await Time(GetPage(type.Url + "?orderby=1"));
         Console.WriteLine($"Completed {type.Name} in {time}");
         var cheapest = ExtractCheapest(pageContent);
+        if (cheapest == null) return null;
         cheapest.Type = type.Name;
+        if (cheapest.Name == null)
+            cheapest.Name = type.Name;
         return cheapest;
     }
 
@@ -64,17 +72,25 @@ internal partial class App
 
     private Task<string> GetPage(string url) => _client.GetStringAsync(url);
 
-    private static Article ExtractCheapest(string pageContent)
+    private static Article? ExtractCheapest(string pageContent)
     {
-        HtmlDocument doc = new();
-        doc.LoadHtml(pageContent);
-        var articleNode = doc.DocumentNode.SelectSingleNode(@"//div[@class=""price""]/../..");
-        var valueStr = MatchNonNumber().Replace(articleNode.SelectSingleNode(@".//div[@class=""price""]").InnerText.Replace(" ", ""), "");
-        var value = int.Parse(valueStr);
-        var nameNode = articleNode.SelectSingleNode(@"div[contains(@class, 'name')]//a");
-        var name = nameNode.InnerText;
-        var url = nameNode.GetAttributeValue("href", "");
-        return new Article() { Name = name, Url = url, Price = value };
+        try
+        {
+            HtmlDocument doc = new();
+            doc.LoadHtml(pageContent);
+            var articleNode = doc.DocumentNode.SelectSingleNode(@"//div[@class=""price""]/../..");
+            var valueNode = articleNode.SelectSingleNode(@".//div[@class=""price""]");
+            var valueStr = MatchNonNumber().Replace(valueNode.InnerText.Replace(" ", ""), "");
+            var value = int.Parse(valueStr);
+            var nameNode = articleNode.SelectSingleNode(@"div[contains(@class, 'name')]//a");
+            var name = nameNode.InnerText;
+            var url = nameNode.GetAttributeValue("href", "");
+            return new Article() { Name = name, Url = url, Price = value };
+        }
+        catch (Exception _)
+        {
+            return null;
+        }
     }
 
     private static List<Type> ExtractTypes(string typesPageContent)
@@ -114,9 +130,9 @@ public static class Utility
 public class Article
 {
     public int Id { get; set; }
-    public string? Name { get; set; }
-    public string? Url { get; set; }
-    public string? Type { get; set; }
+    public string Name { get; set; }
+    public string Url { get; set; }
+    public string Type { get; set; }
     public int Price { get; set; }
     public DateTime InsertTime { get; set; } = DateTime.Now;
 
