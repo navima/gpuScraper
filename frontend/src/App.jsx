@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import "./styles.css";
-import initSqlJs from "sql.js";
+import initSqlJs, { Database } from "sql.js";
+import GpuTable from "./components/table/GpuTable";
 
 // Required to let webpack 4 know it needs to copy the wasm file to our assets
 import sqlWasm from "!!file-loader?name=sql-wasm-[contenthash].wasm!sql.js/dist/sql-wasm.wasm";
@@ -29,7 +30,8 @@ export default function App() {
 
 	if (error) return <pre>{error.toString()}</pre>;
 	else if (!db) return <pre>Loading...</pre>;
-	else return <SQLRepl db={db} />;
+	else return <GpuTable db={db} />;
+	// else return <SQLRepl db={db} />;
 }
 
 /**
