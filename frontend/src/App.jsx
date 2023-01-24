@@ -30,8 +30,10 @@ export default function App() {
 
 	if (error) return <pre>{error.toString()}</pre>;
 	else if (!db) return <pre>Loading...</pre>;
-	else return <GpuTable db={db} />;
-	// else return <SQLRepl db={db} />;
+	else return <div>
+		<GpuTable db={db} />
+		<SQLRepl db={db} />
+	</div>
 }
 
 /**
@@ -57,7 +59,7 @@ function SQLRepl({ db }) {
 
 	return (
 		<div className="App">
-			<h1>React SQL interpreter</h1>
+			<h1>Custom Query</h1>
 
 			<textarea
 				onChange={(e) => exec(e.target.value)}
