@@ -27,7 +27,7 @@ export default function GpuTableRow({ db, gpuType, prevDate, onClicked }: Props)
             var currPrice = db.exec(
                 "select price from articles where type=$type order by insertTime desc limit 1",
                 { "$type": gpuType })?.[0]
-            setCurrPrice(Math.ceil(Number.parseFloat(currPrice?.values?.[0]?.[0]?.toString() ?? "0") / 1000));
+            setCurrPrice(Number.parseFloat(currPrice?.values?.[0]?.[0]?.toString() ?? "0"));
         }
         f()
     }, [db, gpuType])
@@ -40,7 +40,7 @@ export default function GpuTableRow({ db, gpuType, prevDate, onClicked }: Props)
                     "$type": gpuType,
                     "$prevDate": prevDate.format("YYYY-MM-DD")
                 })?.[0]
-            setPrevPrice(Math.ceil(Number.parseFloat(prevPrice?.values?.[0]?.[0]?.toString() ?? "0") / 1000));
+            setPrevPrice(Number.parseFloat(prevPrice?.values?.[0]?.[0]?.toString() ?? "0"));
         }
         f()
     }, [db, gpuType, prevDate])
@@ -51,8 +51,8 @@ export default function GpuTableRow({ db, gpuType, prevDate, onClicked }: Props)
             <td onClick={() => onClicked()}>{gpuType}</td>
             <td>1</td>
             <td>2</td>
-            <td>{prevPrice}</td>
-            <td>{currPrice}</td>
+            <td>{Math.ceil(prevPrice / 1000)}</td>
+            <td>{Math.ceil(currPrice / 1000)}</td>
             <td style={{ backgroundColor: deltaToColorString(delta) }}>{delta ?? ""}</td>
         </tr>
     </>
