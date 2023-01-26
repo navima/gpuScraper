@@ -52,6 +52,8 @@ export default function GpuTable({ db }: Props) {
             <input type={'date'} value={prevDate.format('YYYY-MM-DD')} onChange={(e) => setPrevDate(dayjs(e.target.value))} />
             <div>
                 Ignore list:
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', flexDirection: 'column', height: '300px' }}>
                 {ignored.map(type => <div key={type} onClick={() => setIgnored(ignored.filter((elem) => elem != type))}>{type}</div>)}
             </div>
             <table>

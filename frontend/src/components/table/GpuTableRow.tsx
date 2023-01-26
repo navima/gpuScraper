@@ -9,6 +9,12 @@ function deltaToColorString(delta: number | undefined): string {
     else return "yellow";
 }
 
+function formatPrice(value: number | undefined): string {
+    if (value == undefined)
+        return ""
+    return Math.ceil(value / 1000).toString();
+}
+
 interface Props {
     db: Database,
     gpuType: string,
@@ -50,9 +56,9 @@ export default function GpuTableRow({ db, gpuType, prevDate, onClicked }: Props)
             <td onClick={() => onClicked()}>{gpuType}</td>
             <td>1</td>
             <td>2</td>
-            <td>{Math.ceil(prevPrice / 1000)}</td>
-            <td>{Math.ceil(currPrice / 1000)}</td>
-            <td style={{ backgroundColor: deltaToColorString(delta) }}>{delta ?? ""}</td>
+            <td>{formatPrice(prevPrice)}</td>
+            <td>{formatPrice(currPrice)}</td>
+            <td style={{ backgroundColor: deltaToColorString(delta) }}>{formatPrice(delta)}</td>
         </tr>
     </>
 }
