@@ -45,7 +45,6 @@ export default function GpuTableRow({ db, gpuType, prevDate, onClicked }: Props)
         f()
     }, [db, gpuType, prevDate])
 
-
     return <>
         <tr>
             <td onClick={() => onClicked()}>{gpuType}</td>

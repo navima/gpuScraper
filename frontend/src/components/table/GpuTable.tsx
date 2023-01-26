@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Database } from "sql.js";
 import dayjs from "dayjs";
+import Cookies from "js-cookie";
 import GpuTableRow from "./GpuTableRow";
 
 const except = function <T>(me: T[], other: Iterable<T>): T[] {
@@ -25,13 +26,25 @@ export default function GpuTable({ db }: Props) {
     const toShow = except(types, ignored)
 
     useEffect(() => {
+        const ignoredFromCookiesStr = Cookies.get('ignored')
+        if (!ignoredFromCookiesStr)
+            return;
+        const ignoredFromCookies = JSON.parse(ignoredFromCookiesStr)
+        setIgnored(ignoredFromCookies)
+    }, [])
+
+    useEffect(() => {
         const f = async () => {
             const types = db.exec("select distinct type from articles")?.[0]
             setTypes(sortTypes(types.values.map(row => row[0]?.toString() ?? "")));
-            //setTypes(['rtx-3090', 'rtx-3060-ti', 'rx-6800'])
         }
         f()
     }, [])
+
+    useEffect(() => {
+        // Save ignored to cookies
+        Cookies.set('ignored', JSON.stringify(ignored))
+    }, [ignored])
 
     return <>
         <div>
