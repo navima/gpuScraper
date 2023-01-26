@@ -31,7 +31,7 @@ export default function GpuTable({ db }: Props) {
 
     useEffect(() => {
         const f = async () => {
-            const types = db.exec("select distinct type from articles")?.[0]
+            const types = db.exec("select type from models")?.[0]
             setTypes(sortTypes(types.values.map(row => row[0]?.toString() ?? "")));
         }
         f()

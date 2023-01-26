@@ -23,10 +23,27 @@ interface Props {
 }
 
 export default function GpuTableRow({ db, gpuType, prevDate, onClicked }: Props) {
+    let [perf, setPerf] = useState<number>()
+    let [msrp, setMsrp] = useState<number>()
     let [currPrice, setCurrPrice] = useState<number>(0)
     let [prevPrice, setPrevPrice] = useState<number>(0)
 
     const delta = currPrice == 0 || prevPrice == 0 ? undefined : currPrice - prevPrice
+
+    useEffect(() => {
+        var f = async () => {
+            var perf = db.exec(
+                "select value from benchmarks where modelType=$type limit 1",
+                { "$type": gpuType })?.[0]
+            setPerf(Number.parseFloat(perf?.values?.[0]?.[0]?.toString() ?? "0"));
+
+            var msrp = db.exec(
+                "select msrp from models where type=$type limit 1",
+                { "$type": gpuType })?.[0]
+            setMsrp(Number.parseFloat(msrp?.values?.[0]?.[0]?.toString() ?? "0"));
+        }
+        f()
+    }, [db, gpuType])
 
     useEffect(() => {
         var f = async () => {
@@ -54,8 +71,8 @@ export default function GpuTableRow({ db, gpuType, prevDate, onClicked }: Props)
     return <>
         <tr>
             <td onClick={() => onClicked()}>{gpuType}</td>
-            <td>1</td>
-            <td>2</td>
+            <td>{perf}</td>
+            <td>{msrp}</td>
             <td>{formatPrice(prevPrice)}</td>
             <td>{formatPrice(currPrice)}</td>
             <td style={{ backgroundColor: deltaToColorString(delta) }}>{formatPrice(delta)}</td>
