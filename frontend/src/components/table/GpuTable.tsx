@@ -3,11 +3,7 @@ import { Database } from "sql.js";
 import dayjs from "dayjs";
 import Cookies from "js-cookie";
 import GpuTableRow from "./GpuTableRow";
-
-const except = function <T>(me: T[], other: Iterable<T>): T[] {
-    const b1 = new Set(other)
-    return [...new Set(me.filter((x: T) => !b1.has(x)))]
-}
+import { except } from "../../util/arrayUtils";
 
 function sortTypes(types: string[]): string[] {
     types.sort()
