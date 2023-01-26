@@ -48,14 +48,20 @@ export default function GpuTable({ db }: Props) {
 
     return <>
         <div>
-            <p>Last price date is {prevDate.format('YYYY-MM-DD')}</p>
-            <input type={'date'} value={prevDate.format('YYYY-MM-DD')} onChange={(e) => setPrevDate(dayjs(e.target.value))} />
-            <div>
-                Ignore list:
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', flexDirection: 'column', height: '300px' }}>
-                {ignored.map(type => <div key={type} onClick={() => setIgnored(ignored.filter((elem) => elem != type))}>{type}</div>)}
-            </div>
+            <label htmlFor="prevDate">Last price date</label>
+            <input id="prevDate" type={'date'} value={prevDate.format('YYYY-MM-DD')} onChange={(e) => setPrevDate(dayjs(e.target.value))} />
+            <details>
+                <summary>
+                    Ignore list
+                </summary>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5em', flexDirection: 'column', height: '300px', marginTop: '0.5em' }}>
+                    {ignored.map(type => <div>
+                        <span key={type} className="clickable pill" onClick={() => setIgnored(ignored.filter((elem) => elem != type))}>
+                            {type}
+                        </span>
+                    </div>)}
+                </div>
+            </details>
             <table>
                 <thead>
                     <tr>

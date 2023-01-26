@@ -4,8 +4,8 @@ import { Database } from "sql.js";
 
 function deltaToColorString(delta: number | undefined): string {
     if (delta === undefined) return "initial";
-    if (delta > 0) return "red";
-    if (delta < 0) return "green";
+    if (delta > 0) return "rgb(255,128,128)";
+    if (delta < 0) return "rgb(128,255,128)";
     else return "yellow";
 }
 
