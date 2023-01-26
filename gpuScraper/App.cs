@@ -1,4 +1,5 @@
 ﻿using System.Collections.Concurrent;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
@@ -137,6 +138,21 @@ public class Article
     public DateTime InsertTime { get; set; } = DateTime.Now;
 
     public override string ToString() => $"{nameof(Id)}: {Id}, {nameof(Name)}: {Name}, {nameof(Url)}: {Url}, {nameof(Type)}: {Type}, {nameof(Price)}: {Price}, {nameof(InsertTime)}: {InsertTime}";
+}
+
+public class GpuModel
+{
+    [Key]
+    public string Type { get; set; }
+    public string Name { get; set; }
+}
+
+public class Benchmark
+{
+    public string Id { get; set; }
+    public GpuModel Model { get; set; }
+    public string Type { get; set; }
+    public int Value { get; set; }
 }
 
 public record Type(string Name, string Url);
