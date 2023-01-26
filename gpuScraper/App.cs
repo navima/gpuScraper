@@ -145,6 +145,7 @@ public class GpuModel
     [Key]
     public string Type { get; set; }
     public string Name { get; set; }
+    public int MSRP { get; set; }
 }
 
 public class Benchmark
