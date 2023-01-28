@@ -70,7 +70,7 @@ export default function GpuTableRow({ db, gpuType, prevDate, onClicked }: Props)
 
     return <>
         <tr>
-            <td onClick={() => onClicked()}>{gpuType}</td>
+            <td className="table-align-left" onClick={() => onClicked()}>{gpuType}</td>
             <td>{perf}</td>
             <td>{msrp}</td>
             <td>{formatPrice(prevPrice)}</td>

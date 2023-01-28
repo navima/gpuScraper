@@ -16,7 +16,7 @@ interface Props {
 
 export default function GpuTable({ db }: Props) {
     let [types, setTypes] = useState<string[]>([])
-    let [prevDate, setPrevDate] = useState(dayjs().subtract(5, 'days'));
+    let [prevDate, setPrevDate] = useState(dayjs().subtract(1, 'days'));
     let [ignored, setIgnored] = useState<string[]>([]);
 
     const toShow = except(types, ignored)
@@ -44,15 +44,20 @@ export default function GpuTable({ db }: Props) {
 
     return <>
         <div>
-            <label htmlFor="prevDate">Last price date</label>
-            <input id="prevDate" type={'date'} value={prevDate.format('YYYY-MM-DD')} onChange={(e) => setPrevDate(dayjs(e.target.value))} />
+            <div style={{ display: "flex", flexDirection: "row", gap: "0.5em" }}>
+                <label htmlFor="prevDate">Last price date</label>
+                <input id="prevDate" type={'date'} value={prevDate.format('YYYY-MM-DD')} onChange={(e) => setPrevDate(dayjs(e.target.value))} />
+                <a className="link" onClick={() => setPrevDate(dayjs().subtract(1, 'days'))}>1 day ago</a>
+                <a className="link" onClick={() => setPrevDate(dayjs().subtract(2, 'days'))}>2 days ago</a>
+                <a className="link" onClick={() => setPrevDate(dayjs().subtract(1, 'weeks'))}>1 week ago</a>
+            </div>
             <details>
                 <summary>
                     Ignore list
                 </summary>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5em', flexDirection: 'column', height: '300px', marginTop: '0.5em' }}>
-                    {ignored.map(type => <div>
-                        <span key={type} className="clickable pill" onClick={() => setIgnored(ignored.filter((elem) => elem != type))}>
+                    {ignored.map(type => <div key={type}>
+                        <span className="clickable pill" onClick={() => setIgnored(ignored.filter((elem) => elem != type))}>
                             {type}
                         </span>
                     </div>)}
