@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import "./styles.css";
-import initSqlJs, { Database } from "sql.js";
+import initSqlJs from "sql.js";
 import GpuTable from "./components/table/GpuTable";
 import SQLRepl from "./sqlRepl/SqlRepl";
 
@@ -12,22 +12,25 @@ export default function App() {
 	const [db, setDb] = useState(null);
 	const [error, setError] = useState(null);
 
-	useEffect(async () => {
-		// sql.js needs to fetch its wasm file, so we cannot immediately instantiate the database
-		// without any configuration, initSqlJs will fetch the wasm files directly from the same path as the js
-		// see ../craco.config.js
-		try {
-			const response = await fetch("https://raw.githubusercontent.com/navima/gpuScraper/archive/archive.db", {
-				withCredentials: false,
-				crossorigin: true,
-				mode: 'cors'
-			});
-			const buf = await response.arrayBuffer();
-			const SQL = await initSqlJs({ locateFile: () => sqlWasm });
-			setDb(new SQL.Database(new Uint8Array(buf)));
-		} catch (err) {
-			setError(err);
+	useEffect(() => {
+		const f = async () => {
+			// sql.js needs to fetch its wasm file, so we cannot immediately instantiate the database
+			// without any configuration, initSqlJs will fetch the wasm files directly from the same path as the js
+			// see ../craco.config.js
+			try {
+				const response = await fetch("https://raw.githubusercontent.com/navima/gpuScraper/archive/archive.db", {
+					withCredentials: false,
+					crossorigin: true,
+					mode: 'cors'
+				});
+				const buf = await response.arrayBuffer();
+				const SQL = await initSqlJs({ locateFile: () => sqlWasm });
+				setDb(new SQL.Database(new Uint8Array(buf)));
+			} catch (err) {
+				setError(err);
+			}
 		}
+		f()
 	}, []);
 
 	if (error) return <pre>{error.toString()}</pre>;
