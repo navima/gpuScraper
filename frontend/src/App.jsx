@@ -5,6 +5,7 @@ import GpuTable from "./components/table/GpuTable";
 import SQLRepl from "./sqlRepl/SqlRepl";
 
 // Required to let webpack 4 know it needs to copy the wasm file to our assets
+// eslint-disable-next-line import/no-webpack-loader-syntax
 import sqlWasm from "!!file-loader?name=sql-wasm-[contenthash].wasm!sql.js/dist/sql-wasm.wasm";
 
 export default function App() {
