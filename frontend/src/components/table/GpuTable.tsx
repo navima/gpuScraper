@@ -3,62 +3,167 @@ import { Database } from "sql.js";
 import dayjs from "dayjs";
 import Cookies from "js-cookie";
 import GpuTableRow from "./GpuTableRow";
-import { except } from "../../util/arrayUtils";
+import Record from "./Record";
 
-function sortTypes(types: string[]): string[] {
-    types.sort()
-    return types
+function compare(a: string, b: string) {
+    if (a < b)
+        return -1
+    if (a > b)
+        return 1
+    return 0
 }
+
+function sortRecords(records: Record[]): Record[] {
+    records.sort((a, b) => compare(a.name, b.name))
+    return records
+}
+
+function parseIntOrUndefined(s: string | undefined | null): number | undefined {
+    const value = Number.parseInt(s ?? "NaN");
+    if (Number.isNaN(value)) return undefined;
+    return value;
+}
+
+//class TableConfiguration {
+//    ignoredTypes: string[] = [];
+//}
 
 interface Props {
     db: Database
 }
 
 export default function GpuTable({ db }: Props) {
-    const [types, setTypes] = useState<string[]>([])
     const [prevDate, setPrevDate] = useState(dayjs().subtract(1, 'days'));
-    const [ignored, setIgnored] = useState<string[]>([]);
+    const [records, setRecords] = useState<Record[]>([]);
 
-    const toShow = except(types, ignored)
+    const toIgnore = records.filter(r => r.ignored)
+    const toShow = records.filter(r => !r.ignored)
 
+    const [refreshValues, setRefreshValues] = useState(0)
+
+    // Update ignore list from cookies
     useEffect(() => {
         const ignoredFromCookiesStr = Cookies.get('ignored')
         if (!ignoredFromCookiesStr)
             return;
-        const ignoredFromCookies = JSON.parse(ignoredFromCookiesStr)
-        setIgnored(ignoredFromCookies)
-    }, [])
+        const ignoredFromCookies: string[] = JSON.parse(ignoredFromCookiesStr)
+        ignoredFromCookies.forEach(type => {
+            const record = records.find(r => r.type === type)
+            if (record!) {
+                record.ignored = true
+            }
+        });
+    }, [records])
 
+    // Query records
     useEffect(() => {
         const f = async () => {
-            const types = db.exec("select type from models")?.[0]
-            setTypes(sortTypes(types.values.map(row => row[0]?.toString() ?? "")));
+            const pseudoRecords = db.exec(`
+                SELECT m.type,
+                    m.name,
+                    m.MSRP,
+                    b.value as Performance
+                FROM models m
+                    LEFT JOIN (
+                        SELECT *
+                        FROM benchmarks
+                        WHERE type = '1440p;high;rtx'
+                    ) b ON modelType = m.type
+            `)?.[0]
+            setRecords(sortRecords(pseudoRecords.values.map(pr => {
+                const [type, name, msrp, performance] = pr;
+                const record = new Record();
+                record.type = type?.toString() ?? "";
+                record.name = name?.toString() ?? "";
+                record.msrp = parseIntOrUndefined(msrp?.toString())
+                record.performance = parseIntOrUndefined(performance?.toString())
+                return record;
+            })))
         }
         f()
-    }, [])
+    }, [db])
 
+    // Query additional data for records
     useEffect(() => {
-        // Save ignored to cookies
-        Cookies.set('ignored', JSON.stringify(ignored))
-    }, [ignored])
+        const f = async () => {
+            records.filter(r => !r.ignored).forEach(record => {
+                record.prevDate = prevDate;
+                const currPriceQueryRes = db.exec(
+                    `
+                    SELECT price
+                    FROM articles
+                    WHERE type = $type
+                    ORDER BY insertTime DESC
+                    LIMIT 1
+                    `,
+                    { "$type": record.type })?.[0]
+                const currPrice = Number.parseFloat(currPriceQueryRes?.values?.[0]?.[0]?.toString() ?? "0");
+                if (currPrice!) {
+                    record.currentPrice = currPrice
+                }
+                const prevPriceQueryRes = db.exec(
+                    `
+                    SELECT price
+                    FROM articles
+                    WHERE type = $type
+                        AND insertTime < $prevDate
+                    ORDER BY insertTime DESC
+                    LIMIT 1
+                    `,
+                    {
+                        "$type": record.type,
+                        "$prevDate": prevDate.format("YYYY-MM-DD")
+                    })?.[0]
+                const prevPrice = Number.parseFloat(prevPriceQueryRes?.values?.[0]?.[0]?.toString() ?? "0");
+                if (prevPrice!) {
+                    record.previousPrice = prevPrice
+                }
+            });
+            setRefreshValues(refreshValues + 1);
+        }
+        f()
+        // eslint-disable-next-line
+    }, [db, records, prevDate])
+
+    /**
+     * Ignore a record. (Also updates cookies)
+     */
+    function ignore(record: Record) {
+        record.ignored = true;
+        const ignoredTypes = records
+            .filter(r => r.ignored)
+            .map(r => r.type)
+        Cookies.set('ignored', JSON.stringify(ignoredTypes))
+    }
+
+    /**
+    * Un-Ignore a record. (Also updates cookies)
+    */
+    function unignore(record: Record) {
+        record.ignored = false;
+        const ignoredTypes = records
+            .filter(r => r.ignored)
+            .map(r => r.type)
+        Cookies.set('ignored', JSON.stringify(ignoredTypes))
+    }
 
     return <>
         <div>
             <div style={{ display: "flex", flexDirection: "row", gap: "0.5em" }}>
                 <label htmlFor="prevDate">Last price date</label>
                 <input id="prevDate" type={'date'} value={prevDate.format('YYYY-MM-DD')} onChange={(e) => setPrevDate(dayjs(e.target.value))} />
-                <a className="link" onClick={() => setPrevDate(dayjs().subtract(1, 'days'))}>1 day ago</a>
-                <a className="link" onClick={() => setPrevDate(dayjs().subtract(2, 'days'))}>2 days ago</a>
-                <a className="link" onClick={() => setPrevDate(dayjs().subtract(1, 'weeks'))}>1 week ago</a>
+                <span className="link" onClick={() => setPrevDate(dayjs().subtract(1, 'days'))}>1 day ago</span>
+                <span className="link" onClick={() => setPrevDate(dayjs().subtract(2, 'days'))}>2 days ago</span>
+                <span className="link" onClick={() => setPrevDate(dayjs().subtract(1, 'weeks'))}>1 week ago</span>
             </div>
             <details>
                 <summary>
                     Ignore list
                 </summary>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5em', flexDirection: 'column', height: '300px', marginTop: '0.5em' }}>
-                    {ignored.map(type => <div key={type}>
-                        <span className="clickable pill" onClick={() => setIgnored(ignored.filter((elem) => elem != type))}>
-                            {type}
+                    {toIgnore.map(record => <div key={record.type}>
+                        <span className="clickable pill" onClick={() => unignore(record)}>
+                            {record.name}
                         </span>
                     </div>)}
                 </div>
@@ -75,7 +180,7 @@ export default function GpuTable({ db }: Props) {
                     </tr>
                 </thead>
                 <tbody>
-                    {toShow.map(type => <GpuTableRow db={db} gpuType={type} prevDate={prevDate} key={type} onClicked={() => setIgnored([...ignored, type])} />)}
+                    {toShow.map(record => <GpuTableRow db={db} record={record} refresh={refreshValues} key={record.type} onClicked={() => ignore(record)} />)}
                 </tbody>
             </table>
         </div>
