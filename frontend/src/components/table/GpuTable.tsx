@@ -134,6 +134,7 @@ export default function GpuTable({ db }: Props) {
             .filter(r => r.ignored)
             .map(r => r.type)
         Cookies.set('ignored', JSON.stringify(ignoredTypes))
+        setRefreshValues(refreshValues + 1);
     }
 
     /**
@@ -145,6 +146,7 @@ export default function GpuTable({ db }: Props) {
             .filter(r => r.ignored)
             .map(r => r.type)
         Cookies.set('ignored', JSON.stringify(ignoredTypes))
+        setRefreshValues(refreshValues + 1);
     }
 
     return <>

@@ -32,7 +32,7 @@ export default function GpuTableRow({ record, onClicked, refresh }: Props) {
 
     return <>
         <tr>
-            <td className="table-align-left" onClick={() => onClicked()}>{name}</td>
+            <td className="table-align-left clickable" onClick={() => onClicked()}>{name}</td>
             <td>{performance}</td>
             <td>{msrp}</td>
             <td>{formatPrice(prevPrice)}</td>
