@@ -23,10 +23,10 @@ interface Props {
 }
 
 export default function GpuTableRow({ db, gpuType, prevDate, onClicked }: Props) {
-    let [perf, setPerf] = useState<number>()
-    let [msrp, setMsrp] = useState<number>()
-    let [currPrice, setCurrPrice] = useState<number>(0)
-    let [prevPrice, setPrevPrice] = useState<number>(0)
+    const [perf, setPerf] = useState<number>()
+    const [msrp, setMsrp] = useState<number>()
+    const [currPrice, setCurrPrice] = useState<number>(0)
+    const [prevPrice, setPrevPrice] = useState<number>(0)
 
     const delta = currPrice == 0 || prevPrice == 0 ? undefined : currPrice - prevPrice
 

@@ -15,9 +15,9 @@ interface Props {
 }
 
 export default function GpuTable({ db }: Props) {
-    let [types, setTypes] = useState<string[]>([])
-    let [prevDate, setPrevDate] = useState(dayjs().subtract(1, 'days'));
-    let [ignored, setIgnored] = useState<string[]>([]);
+    const [types, setTypes] = useState<string[]>([])
+    const [prevDate, setPrevDate] = useState(dayjs().subtract(1, 'days'));
+    const [ignored, setIgnored] = useState<string[]>([]);
 
     const toShow = except(types, ignored)
 
