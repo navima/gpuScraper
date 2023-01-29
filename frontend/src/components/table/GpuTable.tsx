@@ -44,7 +44,7 @@ export default function GpuTable({ db }: Props) {
     // Update ignore list from cookies
     useEffect(() => {
         const ignoredFromCookiesStr = Cookies.get('ignored')
-        if (!ignoredFromCookiesStr)
+        if (!ignoredFromCookiesStr!)
             return;
         const ignoredFromCookies: string[] = JSON.parse(ignoredFromCookiesStr)
         ignoredFromCookies.forEach(type => {
@@ -97,10 +97,8 @@ export default function GpuTable({ db }: Props) {
                     LIMIT 1
                     `,
                     { "$type": record.type })?.[0]
-                const currPrice = Number.parseFloat(currPriceQueryRes?.values?.[0]?.[0]?.toString() ?? "0");
-                if (currPrice!) {
-                    record.currentPrice = currPrice
-                }
+                record.currentPrice = parseIntOrUndefined(currPriceQueryRes?.values?.[0]?.[0]?.toString());
+
                 const prevPriceQueryRes = db.exec(
                     `
                     SELECT price
@@ -114,10 +112,7 @@ export default function GpuTable({ db }: Props) {
                         "$type": record.type,
                         "$prevDate": prevDate.format("YYYY-MM-DD")
                     })?.[0]
-                const prevPrice = Number.parseFloat(prevPriceQueryRes?.values?.[0]?.[0]?.toString() ?? "0");
-                if (prevPrice!) {
-                    record.previousPrice = prevPrice
-                }
+                record.previousPrice = parseIntOrUndefined(prevPriceQueryRes?.values?.[0]?.[0]?.toString());
             });
             setRefreshValues(refreshValues + 1);
         }
