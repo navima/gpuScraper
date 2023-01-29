@@ -14,6 +14,10 @@ function formatPrice(value: number | undefined): string {
     return Math.ceil(value / 1000).toString();
 }
 
+function formatDecimal(value: number): string {
+    return value.toFixed(2)
+}
+
 interface Props {
     db: Database,
     record: Record,
@@ -34,6 +38,7 @@ export default function GpuTableRow({ record, onClicked, refresh }: Props) {
             <td>{formatPrice(cheapestPastMonth)}</td>
             <td>{formatPrice(prevPrice)}</td>
             <td>{formatPrice(currPrice)}</td>
+            <td>{formatDecimal(1000 * (record.performance ?? 0) / (record.currentPrice ?? 1))}</td>
             <td style={{ backgroundColor: deltaToColorString(delta) }}>{formatPrice(delta)}</td>
         </tr>
     </>

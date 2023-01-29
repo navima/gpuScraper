@@ -190,6 +190,7 @@ export default function GpuTable({ db }: Props) {
                         <td>Cheapest past month</td>
                         <td>{prevDate.format('YYYY-MM-DD')}</td>
                         <td>Curr Price</td>
+                        <td>frame/price</td>
                         <td>δ</td>
                     </tr>
                 </thead>
