@@ -35,11 +35,11 @@ interface Props {
 export default function GpuTable({ db }: Props) {
     const [prevDate, setPrevDate] = useState(dayjs().subtract(1, 'days'));
     const [records, setRecords] = useState<Record[]>([]);
+    const [refreshValues, setRefreshValues] = useState(0)
 
     const toIgnore = records.filter(r => r.ignored)
     const toShow = records.filter(r => !r.ignored)
 
-    const [refreshValues, setRefreshValues] = useState(0)
 
     // Update ignore list from cookies
     useEffect(() => {
@@ -113,6 +113,22 @@ export default function GpuTable({ db }: Props) {
                         "$prevDate": prevDate.format("YYYY-MM-DD")
                     })?.[0]
                 record.previousPrice = parseIntOrUndefined(prevPriceQueryRes?.values?.[0]?.[0]?.toString());
+
+                const cheapestPastMonth = db.exec(
+                    `
+                    SELECT min(price)
+                    FROM articles
+                    WHERE price IS NOT NULL
+                        AND price <> 0
+                        AND type = $type
+                        AND insertTime > $prevDate
+                    ORDER BY insertTime DESC
+                    `,
+                    {
+                        "$type": record.type,
+                        "$prevDate": dayjs().subtract(1, 'month').format("YYYY-MM-DD")
+                    })?.[0]
+                record.cheapestPastMonth = parseIntOrUndefined(cheapestPastMonth?.values?.[0]?.[0]?.toString());
             });
             setRefreshValues(refreshValues + 1);
         }
@@ -171,6 +187,7 @@ export default function GpuTable({ db }: Props) {
                         <td>Type</td>
                         <td>Performance</td>
                         <td>MSRP</td>
+                        <td>Cheapest past month</td>
                         <td>{prevDate.format('YYYY-MM-DD')}</td>
                         <td>Curr Price</td>
                         <td>δ</td>

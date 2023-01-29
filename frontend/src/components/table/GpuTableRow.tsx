@@ -22,11 +22,7 @@ interface Props {
 }
 
 export default function GpuTableRow({ record, onClicked, refresh }: Props) {
-    /*useEffect(() => {
-
-    }, [record])*/
-
-    const { name, msrp, performance, previousPrice: prevPrice, currentPrice: currPrice } = record;
+    const { name, msrp, performance, previousPrice: prevPrice, currentPrice: currPrice, cheapestPastMonth } = record;
 
     const delta = prevPrice! && currPrice! ? currPrice - prevPrice : 0;
 
@@ -35,6 +31,7 @@ export default function GpuTableRow({ record, onClicked, refresh }: Props) {
             <td className="table-align-left clickable" onClick={() => onClicked()}>{name}</td>
             <td>{performance}</td>
             <td>{msrp}</td>
+            <td>{formatPrice(cheapestPastMonth)}</td>
             <td>{formatPrice(prevPrice)}</td>
             <td>{formatPrice(currPrice)}</td>
             <td style={{ backgroundColor: deltaToColorString(delta) }}>{formatPrice(delta)}</td>
