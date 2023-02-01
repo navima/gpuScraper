@@ -110,7 +110,7 @@ export default function GpuTable({ db }: Props) {
                     `,
                     {
                         "$type": record.type,
-                        "$prevDate": prevDate.format("YYYY-MM-DD")
+                        "$prevDate": prevDate.add(1, 'day').format("YYYY-MM-DD")
                     })?.[0]
                 record.previousPrice = parseIntOrUndefined(prevPriceQueryRes?.values?.[0]?.[0]?.toString());
 
