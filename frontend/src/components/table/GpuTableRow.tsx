@@ -1,3 +1,4 @@
+/* eslint eqeqeq:0 */
 import { Database } from "sql.js";
 import Record from "./Record";
 
