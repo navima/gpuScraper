@@ -37,7 +37,7 @@ export default function GpuTableRow({ record, onClicked, refresh }: Props) {
             <td>{msrp}</td>
             <td>{formatPrice(cheapestPastMonth)}</td>
             <td>{formatPrice(prevPrice)}</td>
-            <td>{formatPrice(currPrice)}</td>
+            <td style={{ backgroundColor: cheapestPastMonth! && currPrice! && formatPrice(cheapestPastMonth) == formatPrice(currPrice) ? "rgb(128,255,128)" : "initial" }}>{formatPrice(currPrice)}</td>
             <td>{formatDecimal(1000 * (record.performance ?? 0) / (record.currentPrice ?? 1))}</td>
             <td style={{ backgroundColor: deltaToColorString(delta) }}>{formatPrice(delta)}</td>
         </tr>
