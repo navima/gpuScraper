@@ -10,4 +10,5 @@ export default class Record {
     currentPrice?: number;
     previousPrice?: number;
     cheapestPastMonth?: number;
+    cheapestEver?: number;
 }

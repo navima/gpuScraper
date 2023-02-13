@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import Cookies from "js-cookie";
 import GpuTableRow from "./GpuTableRow";
 import Record from "./Record";
+import "./styles.css";
 
 function compare(a: string, b: string) {
     if (a < b)
@@ -129,6 +130,23 @@ export default function GpuTable({ db }: Props) {
                         "$prevDate": dayjs().subtract(1, 'month').format("YYYY-MM-DD")
                     })?.[0]
                 record.cheapestPastMonth = parseIntOrUndefined(cheapestPastMonth?.values?.[0]?.[0]?.toString());
+
+                const cheapestEver = db.exec(
+                    `
+                    SELECT min(price)
+                    FROM articles
+                    WHERE price IS NOT NULL
+                        AND price <> 0
+                        AND type = $type
+                    ORDER BY insertTime DESC
+                    `,
+                    {
+                        "$type": record.type,
+                        "$prevDate": dayjs().subtract(1, 'month').format("YYYY-MM-DD")
+                    })?.[0]
+                record.cheapestEver = parseIntOrUndefined(cheapestEver?.values?.[0]?.[0]?.toString());
+
+                console.log("query finished for", record)
             });
             setRefreshValues(refreshValues + 1);
         }
@@ -184,14 +202,18 @@ export default function GpuTable({ db }: Props) {
             <table>
                 <thead>
                     <tr>
-                        <td>Type</td>
-                        <td>Performance</td>
-                        <td>MSRP</td>
-                        <td>Cheapest past month</td>
-                        <td>{prevDate.format('YYYY-MM-DD')}</td>
-                        <td>Curr Price</td>
-                        <td>frame/price</td>
-                        <td>δ</td>
+                        <td rowSpan={2}>Type</td>
+                        <td rowSpan={2}>Performance</td>
+                        <td rowSpan={2}>MSRP</td>
+                        <td colSpan={2}>Cheapest</td>
+                        <td rowSpan={2}>{prevDate.format('YYYY-MM-DD')}</td>
+                        <td rowSpan={2}>Curr Price</td>
+                        <td rowSpan={2}>frame/price</td>
+                        <td rowSpan={2}>δ</td>
+                    </tr>
+                    <tr>
+                        <td>ever</td>
+                        <td>30d</td>
                     </tr>
                 </thead>
                 <tbody>
