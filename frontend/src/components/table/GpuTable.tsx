@@ -5,6 +5,7 @@ import Cookies from "js-cookie";
 import GpuTableRow from "./GpuTableRow";
 import Record from "./Record";
 import "./styles.css";
+import { time } from "../../util/performanceUtils";
 
 function compare(a: string, b: string) {
     if (a < b)
@@ -41,6 +42,7 @@ export default function GpuTable({ db }: Props) {
     const toIgnore = records.filter(r => r.ignored)
     const toShow = records.filter(r => !r.ignored)
 
+    console.log("table render called");
 
     // Update ignore list from cookies
     useEffect(() => {
@@ -58,7 +60,7 @@ export default function GpuTable({ db }: Props) {
 
     // Query records
     useEffect(() => {
-        const f = async () => {
+        const f = time("mass query finished in {0}", async () => {
             const pseudoRecords = db.exec(`
                 SELECT m.type,
                     m.name,
@@ -80,14 +82,16 @@ export default function GpuTable({ db }: Props) {
                 record.performance = parseIntOrUndefined(performance?.toString())
                 return record;
             })))
-        }
+        })
         f()
     }, [db])
 
     // Query additional data for records
     useEffect(() => {
-        const f = async () => {
+        const f = time("per-record queries finished in {0}", async () => {
+            console.log(`started per-record queries for ${records.filter(r => !r.ignored).length} types`)
             records.filter(r => !r.ignored).forEach(record => {
+                const startTime = performance.now();
                 record.prevDate = prevDate;
                 const currPriceQueryRes = db.exec(
                     `
@@ -146,10 +150,10 @@ export default function GpuTable({ db }: Props) {
                     })?.[0]
                 record.cheapestEver = parseIntOrUndefined(cheapestEver?.values?.[0]?.[0]?.toString());
 
-                console.log("query finished for", record)
+                console.log(`${record.type} query finished in ${performance.now() - startTime}`)
             });
             setRefreshValues(refreshValues + 1);
-        }
+        })
         f()
         // eslint-disable-next-line
     }, [db, records, prevDate])
