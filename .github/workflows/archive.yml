@@ -39,8 +39,8 @@ jobs:
         dotnet ef database update --project master/gpuScraper
     - name: Run
       env:
-        mailgun__secret: {{ secrets.MAILGUN_API_KEY }}
-        watch-list-source: {{ secrets.WATCHLIST_SOURCE }}
+        mailgun__secret: ${{ secrets.MAILGUN_API_KEY }}
+        watch-list-source: ${{ secrets.WATCHLIST_SOURCE }}
       run: |
         dotnet run --project master/gpuScraper
     - name: Move archive.db back

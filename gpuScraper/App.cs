@@ -1,24 +1,107 @@
 ﻿using System.Collections.Concurrent;
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using System.Diagnostics;
+using System.Text.Json;
 using System.Text.RegularExpressions;
 using HtmlAgilityPack;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using static gpuScraper.Utility;
 
 namespace gpuScraper;
 
 internal partial class App
 {
-    private static async Task Main() => await new App().Run();
+    private static async Task Main(string[] args)
+    {
+        using IHost host = Host.CreateDefaultBuilder(args)
+            .ConfigureServices(s =>
+            {
+                s.AddSingleton<IEmailClient, MailgunEmailClient>();
+                s.AddTransient<App>();
+            }).Build();
+
+        await host.Services.GetRequiredService<App>().Run();
+    }
 
     private const string TypePageUrl = "https://www.arukereso.hu/videokartya-c3142/";
+    private const string WatchListSourceConfKey = "watch-list-source";
 
     private readonly ScraperContext _db = new();
     private readonly HttpClient _client = new();
+    private readonly IEmailClient _emailClient;
+    private readonly IConfiguration _configuration;
+
+    public App(IConfiguration configuration, IEmailClient emailClient)
+    {
+        _emailClient = emailClient;
+        _configuration = configuration;
+    }
 
     public async Task Run()
     {
-        await InsertArticlesToDb(await GetCheapestArticlesOfTypes(await FetchAndExtractTypes()));
+        ConcurrentBag<Article> cheapests = await GetCheapestArticlesOfTypes(await FetchAndExtractTypes());
+        try
+        {
+            Task.WaitAll(
+                InsertArticlesToDb(cheapests),
+                NotifyWatchers(cheapests));
+        }
+        catch (Exception e)
+        {
+            Console.WriteLine(e);
+        }
+    }
+
+    private async Task NotifyWatchers(IEnumerable<Article> articles)
+    {
+        await SendNotifications(GenerateNotifications(await ReadWatchList(), articles));
+    }
+
+    private async Task SendNotifications(List<Notification> notifications)
+    {
+        var parallelOptions = new ParallelOptions();
+        var requestsTime = await Time(Parallel.ForEachAsync(notifications, parallelOptions, async (notification, _) =>
+        {
+            await SendNotification(notification);
+        }));
+        Console.WriteLine($"Sent out {notifications.Count} notifications in {requestsTime}s");
+    }
+
+    private async Task SendNotification(Notification notif)
+    {
+        Console.WriteLine($"Sending notification to {notif.SourceWatch.Address[..3]}");
+        var requestTime = await Time(_emailClient.SendEmail(notif.SourceWatch.Address, notif.GenerateEmail()));
+        Console.WriteLine($"Sent notification to {notif.SourceWatch.Address[..3]} in {requestTime}s");
+    }
+
+    private static List<Notification> GenerateNotifications(List<WatchEntry> watchList, IEnumerable<Article> articles)
+    {
+        var articlesDict = articles.ToDictionary(article => article.Type);
+        return watchList
+            .Where(watchEntry => watchEntry.Enabled)
+            .Select(watchEntry => new Notification(
+                watchEntry,
+                watchEntry.Watchlist
+                    .Select(watch => new NotificationEntry(watch, articlesDict.GetValueOrDefault(watch.Product, new Article() { Price = int.MaxValue })))
+                    .Where(notifEntry => notifEntry.WatchEntry.Price > notifEntry.Article.Price)
+                    .ToList()))
+            .Where(notif => notif.NotificationEntries.Count != 0)
+            .ToList();
+    }
+
+    private async Task<List<WatchEntry>> ReadWatchList()
+    {
+        var watchListSource = _configuration.GetValue<string>(WatchListSourceConfKey)
+            ?? throw new ConfigurationValueNotFoundException($"Configuration not found with name {WatchListSourceConfKey}");
+        var uri = new Uri(watchListSource);
+        var watchListStr = await _client.GetStringAsync(uri);
+        var watches = JsonSerializer.Deserialize<List<WatchEntry>>(watchListStr)
+            ?? throw new JsonException("Deserializer parsed null");
+        Console.WriteLine($"Retrieved watchlist with {watches.Count} watches ({watches.Where(w => w.Enabled).Count()} active)");
+        return watches;
     }
 
     private async Task InsertArticlesToDb(ConcurrentBag<Article> cheapests)
@@ -56,8 +139,7 @@ internal partial class App
         var cheapest = ExtractCheapest(pageContent);
         if (cheapest == null) return null;
         cheapest.Type = type.Name;
-        if (cheapest.Name == null)
-            cheapest.Name = type.Name;
+        cheapest.Name ??= type.Name;
         return cheapest;
     }
 
@@ -112,6 +194,27 @@ internal partial class App
     private static partial Regex MatchNonNumber();
 }
 
+internal record struct Notification(WatchEntry SourceWatch, List<NotificationEntry> NotificationEntries)
+{
+    public Email GenerateEmail()
+    {
+        var title = $"Scraper notification for {string.Join(", ", NotificationEntries.Select(notif => notif.Article.Type))}";
+        var body = string.Join("\n", NotificationEntries.Select(notif =>
+        {
+            var a = notif.Article;
+            var w = notif.WatchEntry;
+            return $"""
+            <div>
+                {a.Type} for {a.Price} (< {w.Price}): <a href="{a.Url}">{a.Name}</a>
+            </div>
+            """;
+        }));
+        return new Email(title, body);
+    }
+}
+
+internal record struct NotificationEntry(Watch WatchEntry, Article Article);
+
 public static class Utility
 {
     public static async Task<(T result, TimeSpan time)> Time<T>(Task<T> task)
@@ -130,6 +233,7 @@ public static class Utility
 
 public class Article
 {
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public int Id { get; set; }
     public string Name { get; set; }
     public string Url { get; set; }
@@ -150,6 +254,7 @@ public class GpuModel
 
 public class Benchmark
 {
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
     public string Id { get; set; }
     public GpuModel Model { get; set; }
     public string Type { get; set; }
