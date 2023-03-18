@@ -36,6 +36,7 @@ export default function App() {
 	if (error) return <pre>{error.toString()}</pre>;
 	else if (!db) return <pre>Loading...</pre>;
 	else return <div>
+		ASDASDASDASDASDASDASDASDASDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD
 		<GpuTable db={db} />
 		<SQLRepl db={db} />
 	</div>
