@@ -35,7 +35,7 @@ jobs:
         cd master
     - name: Apply migrations to database
       run: |
-        dotnet tool install --global dotnet-ef
+        dotnet tool install --global dotnet-ef --version 7.*
         dotnet ef database update --project master/gpuScraper
     - name: Run
       env:
