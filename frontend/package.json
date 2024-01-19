@@ -16,12 +16,12 @@
     "sql.js": "^1.6.2"
   },
   "devDependencies": {
+    "@craco/craco": "^6.0.0",
     "@types/jest": "^29.2.6",
+    "@types/js-cookie": "^3.0.2",
     "@types/node": "^18.11.18",
     "@types/react": "^18.0.27",
     "@types/react-dom": "^18.0.10",
-    "@craco/craco": "^6.0.0",
-    "@types/js-cookie": "^3.0.2",
     "@types/sql.js": "^1.4.4",
     "typescript": "^4.9.4"
   },
@@ -37,7 +37,7 @@
     "not ie <= 11",
     "not op_mini all"
   ],
-  "homepage": "http://nagy.gq/gpuScraper/",
+  "homepage": "http://navima.eu/gpuScraper/",
   "eslintConfig": {
     "extends": [
       "react-app",
