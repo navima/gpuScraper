@@ -43,6 +43,10 @@ td {
   background-color: rgb(218, 244, 255);
 }
 
+.pill:hover {
+  background-color: rgb(218, 244, 255, 0.5);
+}
+
 .link {
   cursor: pointer;
   color: -webkit-link;
@@ -51,4 +55,9 @@ td {
 
 .table-align-left{
   text-align: left;
+}
+
+.middle-message {
+  margin: 1em auto;
+  text-align: center;
 }
