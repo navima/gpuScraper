@@ -16,7 +16,7 @@
     "sql.js": "^1.6.2"
   },
   "devDependencies": {
-    "@craco/craco": "^6.0.0",
+    "@craco/craco": "^7.1.0",
     "@types/jest": "^29.2.6",
     "@types/js-cookie": "^3.0.2",
     "@types/node": "^18.11.18",
