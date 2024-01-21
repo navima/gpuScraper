@@ -20,7 +20,7 @@ export default function App() {
 		const width = 30;
 		const complete = Math.round(width * progress);
 		const incomplete = width - complete;
-		return `[${"=".repeat(complete)}${" ".repeat(incomplete)}] ${Math.round(progress * 100)}%`;
+		return `[${"=".repeat(complete)}${" ".repeat(incomplete)}]${Math.round(progress * 100).toString().padStart(3, ' ')}%`;
 	}
 
 	useEffect(() => {

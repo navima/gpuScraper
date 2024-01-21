@@ -9,23 +9,25 @@ textarea {
   margin: auto;
 }
 
-table {
+table.maintable {
   border: 1px solid #1c6ea4;
   background-color: #eeeeee;
-  margin: 1.5em auto;
   text-align: left;
   border-collapse: collapse;
   text-align: right;
+  word-break: keep-all;
+  line-break: strict;
+  text-wrap: nowrap;
 }
 
-thead {
+.maintable thead {
   font-weight: bold;
   text-align: center;
   border: 2px solid #999;
 }
 
-th,
-td {
+.maintable th,
+.maintable td {
   border: 1px solid #aaa;
 }
 

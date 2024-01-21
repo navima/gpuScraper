@@ -6,6 +6,7 @@ import GpuTableRow from "./GpuTableRow";
 import Record from "./Record";
 import "./styles.css";
 import { time } from "../../util/performanceUtils";
+import Chart from "../Chart";
 
 function compare(a: string, b: string) {
     if (a < b)
@@ -20,7 +21,7 @@ function sortRecords(records: Record[]): Record[] {
     return records
 }
 
-function parseIntOrUndefined(s: string | undefined | null): number | undefined {
+export function parseIntOrUndefined(s: string | undefined | null): number | undefined {
     const value = Number.parseInt(s ?? "NaN");
     if (Number.isNaN(value)) return undefined;
     return value;
@@ -192,10 +193,10 @@ export default function GpuTable({ db }: Props) {
                 <span className="link" onClick={() => setPrevDate(dayjs().subtract(1, 'weeks'))}>1 week ago</span>
             </div>
             <details>
-                <summary>
+                <summary style={{ cursor: 'pointer' }}>
                     Ignore list
                 </summary>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5em', flexDirection: 'column', height: '300px', marginTop: '0.5em' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5em', flexDirection: 'row', marginTop: '0.5em' }}>
                     {toIgnore.map(record => <div key={record.type}>
                         <span className="clickable pill" onClick={() => unignore(record)}>
                             {record.name}
@@ -203,27 +204,30 @@ export default function GpuTable({ db }: Props) {
                     </div>)}
                 </div>
             </details>
-            <table>
-                <thead>
-                    <tr>
-                        <td rowSpan={2}>Type</td>
-                        <td rowSpan={2}>Performance</td>
-                        <td rowSpan={2}>MSRP</td>
-                        <td colSpan={2}>Cheapest</td>
-                        <td rowSpan={2}>{prevDate.format('YYYY-MM-DD')}</td>
-                        <td rowSpan={2}>Curr Price</td>
-                        <td rowSpan={2}>frame/price</td>
-                        <td rowSpan={2}>δ</td>
-                    </tr>
-                    <tr>
-                        <td>ever</td>
-                        <td>30d</td>
-                    </tr>
-                </thead>
-                <tbody>
-                    {toShow.map(record => <GpuTableRow db={db} record={record} refresh={refreshValues} key={record.type} onClicked={() => ignore(record)} />)}
-                </tbody>
-            </table>
+            <div style={{display: "flex", flexDirection: "row", gap: "0.5em", justifyContent: 'center'}}>
+                <table className="maintable">
+                    <thead>
+                        <tr>
+                            <td rowSpan={2}>Type</td>
+                            <td rowSpan={2}>Performance</td>
+                            <td rowSpan={2}>MSRP</td>
+                            <td colSpan={2}>Cheapest</td>
+                            <td rowSpan={2}>{prevDate.format('YYYY-MM-DD')}</td>
+                            <td rowSpan={2}>Curr Price</td>
+                            <td rowSpan={2}>frame/price</td>
+                            <td rowSpan={2}>δ</td>
+                        </tr>
+                        <tr>
+                            <td>ever</td>
+                            <td>30d</td>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {toShow.map(record => <GpuTableRow db={db} record={record} refresh={refreshValues} key={record.type} onClicked={() => ignore(record)} />)}
+                    </tbody>
+                </table>
+                <Chart db={db} records={toShow} />
+            </div>
         </div>
     </>
 }
