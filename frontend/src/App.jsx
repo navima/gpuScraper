@@ -82,6 +82,7 @@ export default function App() {
 		return <div>
 			<GpuTable db={db} />
 			<SQLRepl db={db} />
+			<footer>Performance data sourced from HardwareUnboxed 1440p, High, RTX-on, DLSS-off results, normalized.</footer>
 		</div>;
 	}
 	if (error)

@@ -64,6 +64,13 @@ table.maintable {
   text-align: center;
 }
 
+footer {
+  margin-top: 1em;
+  text-align: center;
+  font-size: small;
+  color: gray;
+}
+
 .responsive-row-or-col {
   display: flex;
   flex-direction: row;
