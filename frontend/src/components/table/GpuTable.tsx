@@ -204,7 +204,7 @@ export default function GpuTable({ db }: Props) {
                     </div>)}
                 </div>
             </details>
-            <div style={{display: "flex", flexDirection: "row", gap: "0.5em", justifyContent: 'center'}}>
+            <div className="responsive-row-or-col" style={{gap: "0.5em", justifyContent: 'center'}}>
                 <table className="maintable">
                     <thead>
                         <tr>

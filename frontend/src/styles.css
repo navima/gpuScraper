@@ -63,3 +63,14 @@ table.maintable {
   margin: 1em auto;
   text-align: center;
 }
+
+.responsive-row-or-col {
+  display: flex;
+  flex-direction: row;
+}
+
+@media screen and (max-width: 110ch) {
+  .responsive-row-or-col {
+    flex-direction: column;
+  }
+}
