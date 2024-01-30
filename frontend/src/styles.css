@@ -18,6 +18,7 @@ table.maintable {
   word-break: keep-all;
   line-break: strict;
   text-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .maintable thead {
