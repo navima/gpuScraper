@@ -16,7 +16,9 @@ function formatPrice(value: number | undefined): string {
 }
 
 function formatDecimal(value: number): string {
-    return value.toFixed(2)
+    if (!value && value == 0)
+        return ""
+    return value.toFixed(2).toString();
 }
 
 interface Props {

@@ -27,10 +27,6 @@ export function parseIntOrUndefined(s: string | undefined | null): number | unde
     return value;
 }
 
-//class TableConfiguration {
-//    ignoredTypes: string[] = [];
-//}
-
 interface Props {
     db: Database
 }
@@ -80,6 +76,7 @@ export default function GpuTable({ db }: Props) {
                 record.type = type?.toString() ?? "";
                 record.name = name?.toString() ?? "";
                 record.msrp = parseIntOrUndefined(msrp?.toString())
+                if (msrp === 0) record.msrp = undefined;
                 record.performance = parseIntOrUndefined(performance?.toString())
                 return record;
             })))
