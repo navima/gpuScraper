@@ -10,7 +10,7 @@ interface Props {
  * A simple SQL read-eval-print-loop
  * @param {{db: import("sql.js").Database}} props
  */
-export default function SQLRepl({ db }: Props) {
+export default function SQLRepl({db}: Props) {
     const [error, setError] = useState<any>();
     const [results, setResults] = useState<QueryExecResult[]>([]);
 
@@ -40,8 +40,8 @@ export default function SQLRepl({ db }: Props) {
 
             <pre>{
                 // results contains one object per select statement in the query
-                results.map(({ columns, values }, i) => (
-                    <ResultsTable key={i} columns={columns} values={values} />
+                results.map(({columns, values}, i) => (
+                    <ResultsTable key={i} columns={columns} values={values}/>
                 ))
             }</pre>
         </div>

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Database } from "sql.js";
 import dayjs from "dayjs";
 import Cookies from "js-cookie";
@@ -31,28 +31,67 @@ interface Props {
     db: Database
 }
 
-export default function GpuTable({ db }: Props) {
+export default function GpuTable({db}: Props) {
     const [prevDate, setPrevDate] = useState(dayjs().subtract(1, 'days'));
     const [records, setRecords] = useState<Record[]>([]);
-    const [refreshValues, setRefreshValues] = useState(0)
+    const [refreshValues, setRefreshValues] = useState(0);
+    const [showChart, setShowChart] = useState(true);
+    const [shouldShowChart, setShouldShowChart] = useState(true);
 
     const toIgnore = records.filter(r => r.ignored)
     const toShow = records.filter(r => !r.ignored)
 
+    const chartTimer: React.MutableRefObject<number | undefined> = useRef();
+    useEffect(() => {
+        window.clearInterval(chartTimer.current)
+        if (!shouldShowChart)
+            setShowChart(false);
+        else {
+            console.log('deferred chart render')
+            chartTimer.current = window.setTimeout(
+                () => {
+                    if (!showChart) {
+                        console.log('actual chart render')
+                        setShowChart(true);
+                    }
+                },
+                1000);
+        }
+        // eslint-disable-next-line
+    }, [shouldShowChart]);
+
     console.log("table render called");
 
-    // Update ignore list from cookies
+    // Read ignore list from queryString or cookies
     useEffect(() => {
-        const ignoredFromCookiesStr = Cookies.get('ignored')
-        if (!ignoredFromCookiesStr!)
+        if (!records! || records.length === 0)
             return;
-        const ignoredFromCookies: string[] = JSON.parse(ignoredFromCookiesStr)
-        ignoredFromCookies.forEach(type => {
+        console.log('reading ignore list')
+        let ignored: string[] = [];
+
+        const searchParams = new URLSearchParams(window.location.search)
+        const ignoredFromSearchParams = searchParams.get('ignored')
+        console.log('ignored from search params:', ignoredFromSearchParams);
+        if (ignoredFromSearchParams!) {
+            ignored = ignoredFromSearchParams.split(',')
+            console.log(`read ${ignored.length} ignored entries from queryString`)
+        } else {
+            const ignoredFromCookiesStr = Cookies.get('ignored')
+            if (ignoredFromCookiesStr!) {
+                ignored = JSON.parse(ignoredFromCookiesStr)
+                console.log(`read ${ignored.length} ignored entries from cookies`)
+            }
+        }
+
+        ignored.forEach(type => {
             const record = records.find(r => r.type === type)
             if (record!) {
                 record.ignored = true
+            } else {
+                console.error(`"${type}" not found in records, which was`, records)
             }
         });
+        persistIgnored(records) // synchronise cookies and queryString
     }, [records])
 
     // Query records
@@ -60,15 +99,13 @@ export default function GpuTable({ db }: Props) {
         const f = time("mass query finished in {0}", async () => {
             const pseudoRecords = db.exec(`
                 SELECT m.type,
-                    m.name,
-                    m.MSRP,
-                    b.value as Performance
+                       m.name,
+                       m.MSRP,
+                       b.value as Performance
                 FROM models m
-                    LEFT JOIN (
-                        SELECT *
-                        FROM benchmarks
-                        WHERE type = '1440p;high;rtx'
-                    ) b ON modelType = m.type
+                         LEFT JOIN (SELECT *
+                                    FROM benchmarks
+                                    WHERE type = '1440p;high;rtx') b ON modelType = m.type
             `)?.[0]
             setRecords(sortRecords(pseudoRecords.values.map(pr => {
                 const [type, name, msrp, performance] = pr;
@@ -84,32 +121,29 @@ export default function GpuTable({ db }: Props) {
         f()
     }, [db])
 
-    // Query additional data for records
-    useEffect(() => {
-        const f = time("per-record queries finished in {0}", async () => {
-            console.log(`started per-record queries for ${records.filter(r => !r.ignored).length} types`)
+    async function perRecordQuery(records: Record[]): Promise<void> {
+        await time("per-record queries finished in {0}", async () => {
+            console.log(`started per-record queries for ${records.length} types`)
             records.filter(r => !r.ignored).forEach(record => {
                 const startTime = performance.now();
                 record.prevDate = prevDate;
                 const currPriceQueryRes = db.exec(
                     `
-                    SELECT price
-                    FROM articles
-                    WHERE type = $type
-                    ORDER BY insertTime DESC
-                    LIMIT 1
+                        SELECT price
+                        FROM articles
+                        WHERE type = $type
+                        ORDER BY insertTime DESC LIMIT 1
                     `,
-                    { "$type": record.type })?.[0]
+                    {"$type": record.type})?.[0]
                 record.currentPrice = parseIntOrUndefined(currPriceQueryRes?.values?.[0]?.[0]?.toString());
 
                 const prevPriceQueryRes = db.exec(
                     `
-                    SELECT price
-                    FROM articles
-                    WHERE type = $type
-                        AND insertTime < $prevDate
-                    ORDER BY insertTime DESC
-                    LIMIT 1
+                        SELECT price
+                        FROM articles
+                        WHERE type = $type
+                          AND insertTime < $prevDate
+                        ORDER BY insertTime DESC LIMIT 1
                     `,
                     {
                         "$type": record.type,
@@ -119,13 +153,13 @@ export default function GpuTable({ db }: Props) {
 
                 const cheapestPastMonth = db.exec(
                     `
-                    SELECT min(price)
-                    FROM articles
-                    WHERE price IS NOT NULL
-                        AND price <> 0
-                        AND type = $type
-                        AND insertTime > $prevDate
-                    ORDER BY insertTime DESC
+                        SELECT min(price)
+                        FROM articles
+                        WHERE price IS NOT NULL
+                          AND price <> 0
+                          AND type = $type
+                          AND insertTime > $prevDate
+                        ORDER BY insertTime DESC
                     `,
                     {
                         "$type": record.type,
@@ -135,12 +169,12 @@ export default function GpuTable({ db }: Props) {
 
                 const cheapestEver = db.exec(
                     `
-                    SELECT min(price)
-                    FROM articles
-                    WHERE price IS NOT NULL
-                        AND price <> 0
-                        AND type = $type
-                    ORDER BY insertTime DESC
+                        SELECT min(price)
+                        FROM articles
+                        WHERE price IS NOT NULL
+                          AND price <> 0
+                          AND type = $type
+                        ORDER BY insertTime DESC
                     `,
                     {
                         "$type": record.type,
@@ -150,52 +184,79 @@ export default function GpuTable({ db }: Props) {
 
                 console.log(`${record.type} query finished in ${performance.now() - startTime}`)
             });
-            setRefreshValues(refreshValues + 1);
-        })
+        })();
+    }
+
+    // Query additional data for records (initial for unignored)
+    useEffect(() => {
+        const f = () => {
+            perRecordQuery(toShow)
+                .then(refresh);
+        }
         f()
         // eslint-disable-next-line
     }, [db, records, prevDate])
 
-    /**
-     * Ignore a record. (Also updates cookies)
-     */
-    function ignore(record: Record) {
-        record.ignored = true;
+    function persistIgnored(records: Record[]) {
         const ignoredTypes = records
             .filter(r => r.ignored)
             .map(r => r.type)
         Cookies.set('ignored', JSON.stringify(ignoredTypes))
+        const ignoredTypesStr = ignoredTypes.join(',')
+        window.history.replaceState(null, '', window.location.pathname + '?ignored=' + ignoredTypesStr)
+        console.log(`persisted ${ignoredTypes.length} ignores to cookies and queryString`)
+    }
+
+    /**
+     * Ignore a record. (Also updates cookies and queryString)
+     */
+    function ignore(record: Record) {
+        delayChartRender();
+        console.log(`ignoring ${record.type}`)
+        record.ignored = true;
+        persistIgnored(records);
         setRefreshValues(refreshValues + 1);
     }
 
     /**
-    * Un-Ignore a record. (Also updates cookies)
-    */
-    function unignore(record: Record) {
+     * Un-Ignore a record. (Also updates cookies and queryString)
+     */
+    async function unignore(record: Record) {
+        delayChartRender();
         record.ignored = false;
-        const ignoredTypes = records
-            .filter(r => r.ignored)
-            .map(r => r.type)
-        Cookies.set('ignored', JSON.stringify(ignoredTypes))
+        persistIgnored(records);
+        if (!record.cheapestEver!)
+            await perRecordQuery([record])
+        refresh();
+    }
+
+    async function delayChartRender() {
+        setShouldShowChart(false);
+        window.setTimeout(() => setShouldShowChart(true), 500);
+    }
+
+    function refresh() {
         setRefreshValues(refreshValues + 1);
     }
 
     return <>
         <div>
-            <div style={{ display: "flex", flexDirection: "row", gap: "0.5em" }}>
+            <div style={{display: "flex", flexDirection: "row", gap: "0.5em"}}>
                 <label htmlFor="prevDate">Last price date</label>
-                <input id="prevDate" type={'date'} value={prevDate.format('YYYY-MM-DD')} onChange={(e) => setPrevDate(dayjs(e.target.value))} />
+                <input id="prevDate" type={'date'} value={prevDate.format('YYYY-MM-DD')}
+                       onChange={(e) => setPrevDate(dayjs(e.target.value))}/>
                 <span className="link" onClick={() => setPrevDate(dayjs().subtract(1, 'days'))}>1 day ago</span>
                 <span className="link" onClick={() => setPrevDate(dayjs().subtract(2, 'days'))}>2 days ago</span>
                 <span className="link" onClick={() => setPrevDate(dayjs().subtract(1, 'weeks'))}>1 week ago</span>
             </div>
             <details>
-                <summary style={{ cursor: 'pointer' }}>
+                <summary style={{cursor: 'pointer'}}>
                     Ignore list
                 </summary>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5em', flexDirection: 'row', marginTop: '0.5em' }}>
+                <div
+                    style={{display: 'flex', flexWrap: 'wrap', gap: '0.5em', flexDirection: 'row', marginTop: '0.5em'}}>
                     {toIgnore.map(record => <div key={record.type}>
-                        <span className="clickable pill" onClick={() => unignore(record)}>
+                        <span className="clickable pill" onClick={async () => await unignore(record)}>
                             {record.name}
                         </span>
                     </div>)}
@@ -204,26 +265,27 @@ export default function GpuTable({ db }: Props) {
             <div className="responsive-row-or-col" style={{gap: "0.5em", justifyContent: 'center'}}>
                 <table className="maintable">
                     <thead>
-                        <tr>
-                            <td rowSpan={2}>Type</td>
-                            <td rowSpan={2}>Performance</td>
-                            <td rowSpan={2}>MSRP</td>
-                            <td colSpan={2}>Cheapest</td>
-                            <td rowSpan={2}>{prevDate.format('YYYY-MM-DD')}</td>
-                            <td rowSpan={2}>Curr Price</td>
-                            <td rowSpan={2}>frame/price</td>
-                            <td rowSpan={2}>δ</td>
-                        </tr>
-                        <tr>
-                            <td>ever</td>
-                            <td>30d</td>
-                        </tr>
+                    <tr>
+                        <td rowSpan={2}>Type</td>
+                        <td rowSpan={2}>Performance</td>
+                        <td rowSpan={2}>MSRP</td>
+                        <td colSpan={2}>Cheapest</td>
+                        <td rowSpan={2}>{prevDate.format('YYYY-MM-DD')}</td>
+                        <td rowSpan={2}>Curr Price</td>
+                        <td rowSpan={2}>frame/price</td>
+                        <td rowSpan={2}>δ</td>
+                    </tr>
+                    <tr>
+                        <td>ever</td>
+                        <td>30d</td>
+                    </tr>
                     </thead>
                     <tbody>
-                        {toShow.map(record => <GpuTableRow db={db} record={record} refresh={refreshValues} key={record.type} onClicked={() => ignore(record)} />)}
+                    {toShow.map(record => <GpuTableRow db={db} record={record} refresh={refreshValues} key={record.type}
+                                                       onClicked={() => ignore(record)}/>)}
                     </tbody>
                 </table>
-                <Chart db={db} records={toShow} />
+                <Chart db={db} records={toShow} shouldShow={showChart}/>
             </div>
         </div>
     </>

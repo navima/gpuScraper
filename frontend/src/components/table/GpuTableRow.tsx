@@ -1,6 +1,7 @@
 /* eslint eqeqeq:0 */
 import { Database } from "sql.js";
 import Record from "./Record";
+import { FaEyeSlash } from "react-icons/fa6";
 
 function deltaToColorString(delta: number | undefined): string {
     if (delta === undefined) return "initial";
@@ -28,22 +29,32 @@ interface Props {
     refresh?: any
 }
 
-export default function GpuTableRow({ record, onClicked, refresh }: Props) {
-    const { name, msrp, performance, previousPrice: prevPrice, currentPrice: currPrice, cheapestPastMonth, cheapestEver } = record;
+export default function GpuTableRow({record, onClicked, refresh}: Props) {
+    const {
+        name,
+        msrp,
+        performance,
+        previousPrice: prevPrice,
+        currentPrice: currPrice,
+        cheapestPastMonth,
+        cheapestEver
+    } = record;
 
     const delta = prevPrice! && currPrice! ? currPrice - prevPrice : 0;
 
     return <>
         <tr>
-            <td className="table-align-left clickable" onClick={() => onClicked()}>{name}</td>
+            <td className="table-align-left clickable" onClick={() => onClicked()}><FaEyeSlash size={12}
+                                                                                               color={'gray'}/>&nbsp;{name}
+            </td>
             <td>{performance}</td>
             <td>{msrp}</td>
             <td>{formatPrice(cheapestEver)}</td>
             <td>{formatPrice(cheapestPastMonth)}</td>
             <td>{formatPrice(prevPrice)}</td>
-            <td style={{ backgroundColor: cheapestPastMonth! && currPrice! && formatPrice(cheapestPastMonth) == formatPrice(currPrice) ? "rgb(128,255,128)" : "initial" }}>{formatPrice(currPrice)}</td>
+            <td style={{backgroundColor: cheapestPastMonth! && currPrice! && formatPrice(cheapestPastMonth) == formatPrice(currPrice) ? "rgb(128,255,128)" : "initial"}}>{formatPrice(currPrice)}</td>
             <td>{formatDecimal(1000 * (record.performance ?? 0) / (record.currentPrice ?? 1))}</td>
-            <td style={{ backgroundColor: deltaToColorString(delta) }}>{formatPrice(delta)}</td>
+            <td style={{backgroundColor: deltaToColorString(delta)}}>{formatPrice(delta)}</td>
         </tr>
     </>
 }
