@@ -37,9 +37,15 @@ export default function GpuTable({db}: Props) {
     const [refreshValues, setRefreshValues] = useState(0);
     const [showChart, setShowChart] = useState(true);
     const [shouldShowChart, setShouldShowChart] = useState(true);
+    const [minPerformance, setMinPerformance] = useState(0);
+    const [maxPrice, setMaxPrice] = useState(Infinity);
+    const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
 
     const toIgnore = records.filter(r => r.ignored)
-    const toShow = records.filter(r => !r.ignored)
+    const toShow = records.filter(r => !r.ignored 
+        && (!r.performance || r.performance >= minPerformance) 
+        && (!r.cheapestPastMonth || r.cheapestPastMonth <= maxPrice * 1000)
+        && (!showOnlyAvailable || r.cheapestPastMonth))
 
     const chartTimer: React.MutableRefObject<number | undefined> = useRef();
     useEffect(() => {
@@ -262,6 +268,17 @@ export default function GpuTable({db}: Props) {
                     </div>)}
                 </div>
             </details>
+            <div style={{display: "flex", flexDirection: "row", gap: "0.5em"}}>
+                <label htmlFor="minPerformance">Min performance</label>
+                <input id="minPerformance" type={'number'} value={minPerformance}
+                       onChange={(e) => setMinPerformance(isNaN(Number.parseInt(e.target.value)) ? 0 : Number.parseInt(e.target.value))}/>
+                <label htmlFor="maxPrice">Max price</label>
+                <input id="maxPrice" type={'number'} value={maxPrice}
+                       onChange={(e) => setMaxPrice(isNaN(Number.parseInt(e.target.value)) ? 999 : Number.parseInt(e.target.value))}/>
+                <label htmlFor="showOnlyAvailable">Show only available</label>
+                <input id="showOnlyAvailable" type={'checkbox'} checked={showOnlyAvailable}
+                       onChange={(e) => setShowOnlyAvailable(e.target.checked)}/>
+            </div>
             <div className="responsive-row-or-col" style={{gap: "0.5em", justifyContent: 'center'}}>
                 <table className="maintable">
                     <thead>
