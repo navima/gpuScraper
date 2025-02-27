@@ -37,7 +37,6 @@ export default function GpuTable({db}: Props) {
     const [refreshValues, setRefreshValues] = useState(0);
     const [showChart, setShowChart] = useState(true);
     const [shouldShowChart, setShouldShowChart] = useState(true);
-    const [startTime, setStartTime] = useState(dayjs().subtract(1, 'year'));
 
     const toIgnore = records.filter(r => r.ignored)
     const toShow = records.filter(r => !r.ignored)
@@ -249,14 +248,6 @@ export default function GpuTable({db}: Props) {
                 <span className="link" onClick={() => setPrevDate(dayjs().subtract(1, 'days'))}>1 day ago</span>
                 <span className="link" onClick={() => setPrevDate(dayjs().subtract(2, 'days'))}>2 days ago</span>
                 <span className="link" onClick={() => setPrevDate(dayjs().subtract(1, 'weeks'))}>1 week ago</span>
-                <label htmlFor="startTime">Chart start time</label>
-                <input id="startTime" type={'date'} value={startTime.format('YYYY-MM-DD')}
-                       onChange={(e) => setStartTime(dayjs(e.target.value))}/>
-                <span className="link" onClick={() => setStartTime(dayjs().subtract(6, 'months'))}>6 months ago</span>
-                <span className="link" onClick={() => setStartTime(dayjs().subtract(1, 'year'))}>1 year ago</span>
-                <span className="link" onClick={() => setStartTime(dayjs().subtract(2, 'years'))}>2 years ago</span>
-                <span className="link" onClick={() => setStartTime(dayjs().subtract(5, 'years'))}>5 years ago</span>
-                <span className="link" onClick={() => setStartTime(dayjs().year(2020))}>lifetime</span>
             </div>
             <details>
                 <summary style={{cursor: 'pointer'}}>
@@ -294,7 +285,7 @@ export default function GpuTable({db}: Props) {
                                                        onClicked={() => ignore(record)}/>)}
                     </tbody>
                 </table>
-                <Chart db={db} records={toShow} shouldShow={showChart} startTime={startTime}/>
+                <Chart db={db} records={toShow} shouldShow={showChart} />
             </div>
         </div>
     </>

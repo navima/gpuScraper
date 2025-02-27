@@ -5,7 +5,7 @@ import { AxisOptions, Chart as ReactChart } from "react-charts";
 import React from "react";
 import { timeSync } from "../util/performanceUtils";
 import Spinner from "./Spinner";
-import { Dayjs } from "dayjs";
+import dayjs, { Dayjs } from "dayjs";
 
 interface Props {
     db: Database;
@@ -24,30 +24,37 @@ type Series = {
     data: Datum[];
 }
 
-export default function Chart({db, records, shouldShow, startTime}: Props) {
+export default function Chart({ db, records, shouldShow }: Props) {
+    const [resolution, setResolution] = React.useState(50);
+    const [startTime, setStartTime] = React.useState(dayjs().subtract(1, 'year'));
 
     const data = React.useMemo(() => {
         if (!shouldShow)
             return;
+        const minDateStr = db.exec('SELECT min(InsertTime) FROM articles')[0].values[0][0];
+        const minDate = dayjs('' + minDateStr);
+        const interval = Math.floor(dayjs().diff(startTime ?? minDate, 'second') / resolution);
+
         const result = timeSync('chart query finished in {0}ms', () => db.exec(`
             SELECT type,
                    round(avg(price / 1000))      avgPrice,
-                   strftime('%Y-%m', InsertTime) month
+                   (strftime('%s', InsertTime) / $interval) * $interval AS timePeriod
             FROM articles
             WHERE type in (${records.map(r => `'${r.type}'`).join(',')}) 
                 AND InsertTime > $startDate
-            GROUP BY type, month
-            ORDER BY type`, 
+            GROUP BY type, timePeriod
+            ORDER BY type`,
             {
-                "$startDate": startTime?.format('YYYY-MM-DD HH:mm:ss') ?? '2000-01-01 00:00:00'
+                "$startDate": startTime?.format('YYYY-MM-DD') ?? '2000-01-01',
+                "$interval": interval
             }));
         if (!result || !result.length || !result[0].values) {
             return [{
                 label: 'no data',
-                data: [{date: new Date(), value: 0}, {date: new Date('2022-01-01'), value: 0}] as Datum[]
+                data: [{ date: new Date(), value: 0 }, { date: new Date('2022-01-01'), value: 0 }] as Datum[]
             }];
         }
-        const [{values}] = result;
+        const [{ values }] = result;
         const datumMap = new Map<string, Datum[]>();
         for (const [type, avgPrice, month] of values) {
             if (!type || !avgPrice || !month) {
@@ -56,19 +63,19 @@ export default function Chart({db, records, shouldShow, startTime}: Props) {
 
             const typeStr = type?.toString() ?? '';
             const avgPriceNum = parseIntOrUndefined(avgPrice?.toString())!;
-            const dateStr = new Date(month?.toString() ?? '');
+            const dateStr = dayjs().second(month as number).toDate();
 
-            const datum = {value: avgPriceNum, date: dateStr};
+            const datum = { value: avgPriceNum, date: dateStr };
             const datumArray = datumMap.get(typeStr) ?? [];
             datumArray.push(datum);
             datumMap.set(typeStr, datumArray);
         }
         const dataset: Series[] = [];
         for (const [type, datumArray] of datumMap) {
-            dataset.push({label: type, data: datumArray});
+            dataset.push({ label: type, data: datumArray });
         }
         return dataset;
-    }, [db, records, shouldShow]);
+    }, [db, records, shouldShow, startTime, resolution]);
 
     const primaryAxis = React.useMemo(
         (): AxisOptions<Datum> => ({
@@ -97,11 +104,24 @@ export default function Chart({db, records, shouldShow, startTime}: Props) {
                 alignContent: 'center',
                 justifyContent: 'center'
             }}>
-                <Spinner/>
+                <Spinner />
             </div>);
 
     return (
-        <div style={{minWidth: '300px', minHeight: '300px', width: '100%'}}>
+        <div style={{ minWidth: '300px', minHeight: '300px', width: '100%' }}>
+            <div>
+                <label htmlFor="startTime">Chart start time</label>
+                <input id="startTime" type={'date'} value={startTime.format('YYYY-MM-DD')}
+                    onChange={(e) => setStartTime(dayjs(e.target.value))} />
+                <span className="link" onClick={() => setStartTime(dayjs().subtract(6, 'months'))}>6 months ago&nbsp;</span>
+                <span className="link" onClick={() => setStartTime(dayjs().subtract(1, 'year'))}>1 year ago&nbsp;</span>
+                <span className="link" onClick={() => setStartTime(dayjs().subtract(2, 'years'))}>2 years ago&nbsp;</span>
+                <span className="link" onClick={() => setStartTime(dayjs().subtract(5, 'years'))}>5 years ago&nbsp;</span>
+                <span className="link" onClick={() => setStartTime(dayjs().year(2020))}>lifetime&nbsp;</span>
+                <label htmlFor="resolution">Resolution: </label>
+                <input id="resolution" type="range" min="1" max="100" value={resolution} onChange={e => setResolution(parseInt(e.target.value))} />
+                {resolution}
+            </div>
             <ReactChart
                 options={{
                     data,
