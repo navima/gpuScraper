@@ -56,14 +56,14 @@ export default function Chart({ db, records, shouldShow }: Props) {
         }
         const [{ values }] = result;
         const datumMap = new Map<string, Datum[]>();
-        for (const [type, avgPrice, month] of values) {
-            if (!type || !avgPrice || !month) {
+        for (const [type, avgPrice, timePeriod] of values) {
+            if (!type || !avgPrice || !timePeriod) {
                 continue;
             }
 
             const typeStr = type?.toString() ?? '';
             const avgPriceNum = parseIntOrUndefined(avgPrice?.toString())!;
-            const dateStr = dayjs().second(month as number).toDate();
+            const dateStr = dayjs.unix(timePeriod as number).toDate();
 
             const datum = { value: avgPriceNum, date: dateStr };
             const datumArray = datumMap.get(typeStr) ?? [];
