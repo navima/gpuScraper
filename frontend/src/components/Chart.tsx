@@ -5,11 +5,13 @@ import { AxisOptions, Chart as ReactChart } from "react-charts";
 import React from "react";
 import { timeSync } from "../util/performanceUtils";
 import Spinner from "./Spinner";
+import { Dayjs } from "dayjs";
 
 interface Props {
     db: Database;
     records: Record[];
     shouldShow: boolean;
+    startTime?: Dayjs;
 }
 
 type Datum = {
@@ -22,7 +24,7 @@ type Series = {
     data: Datum[];
 }
 
-export default function Chart({db, records, shouldShow}: Props) {
+export default function Chart({db, records, shouldShow, startTime}: Props) {
 
     const data = React.useMemo(() => {
         if (!shouldShow)
@@ -32,9 +34,13 @@ export default function Chart({db, records, shouldShow}: Props) {
                    round(avg(price / 1000))      avgPrice,
                    strftime('%Y-%m', InsertTime) month
             FROM articles
-            WHERE type in (${records.map(r => `'${r.type}'`).join(',')})
+            WHERE type in (${records.map(r => `'${r.type}'`).join(',')}) 
+                AND InsertTime > $startDate
             GROUP BY type, month
-            ORDER BY type`));
+            ORDER BY type`, 
+            {
+                "$startDate": startTime?.format('YYYY-MM-DD HH:mm:ss') ?? '2000-01-01 00:00:00'
+            }));
         if (!result || !result.length || !result[0].values) {
             return [{
                 label: 'no data',
