@@ -31,7 +31,7 @@ interface Props {
     db: Database
 }
 
-export default function GpuTable({db}: Props) {
+export default function GpuTable({ db }: Props) {
     const [prevDate, setPrevDate] = useState(dayjs().subtract(1, 'days'));
     const [records, setRecords] = useState<Record[]>([]);
     const [refreshValues, setRefreshValues] = useState(0);
@@ -42,8 +42,8 @@ export default function GpuTable({db}: Props) {
     const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
 
     const toIgnore = records.filter(r => r.ignored)
-    const toShow = records.filter(r => !r.ignored 
-        && (!r.performance || r.performance >= minPerformance) 
+    const toShow = records.filter(r => !r.ignored
+        && (!r.performance || r.performance >= minPerformance)
         && (!r.cheapestPastMonth || r.cheapestPastMonth <= maxPrice * 1000)
         && (!showOnlyAvailable || r.cheapestPastMonth))
 
@@ -104,14 +104,9 @@ export default function GpuTable({db}: Props) {
     useEffect(() => {
         const f = time("mass query finished in {0}", async () => {
             const pseudoRecords = db.exec(`
-                SELECT m.type,
-                       m.name,
-                       m.MSRP,
-                       b.value as Performance
-                FROM models m
-                         LEFT JOIN (SELECT *
-                                    FROM benchmarks
-                                    WHERE type = '1440p;high;rtx') b ON modelType = m.type
+                select Type, Name, MSRP, value from models
+                full join (select distinct type from articles) using(type)
+                full join (select modeltype as type, value from benchmarks b where b.type = '1440p;high;rtx') using(type)
             `)?.[0]
             setRecords(sortRecords(pseudoRecords.values.map(pr => {
                 const [type, name, msrp, performance] = pr;
@@ -140,7 +135,7 @@ export default function GpuTable({db}: Props) {
                         WHERE type = $type
                         ORDER BY insertTime DESC LIMIT 1
                     `,
-                    {"$type": record.type})?.[0]
+                    { "$type": record.type })?.[0]
                 record.currentPrice = parseIntOrUndefined(currPriceQueryRes?.values?.[0]?.[0]?.toString());
 
                 const prevPriceQueryRes = db.exec(
@@ -247,20 +242,20 @@ export default function GpuTable({db}: Props) {
 
     return <>
         <div>
-            <div style={{display: "flex", flexDirection: "row", gap: "0.5em"}}>
+            <div style={{ display: "flex", flexDirection: "row", gap: "0.5em" }}>
                 <label htmlFor="prevDate">Last price date</label>
                 <input id="prevDate" type={'date'} value={prevDate.format('YYYY-MM-DD')}
-                       onChange={(e) => setPrevDate(dayjs(e.target.value))}/>
+                    onChange={(e) => setPrevDate(dayjs(e.target.value))} />
                 <span className="link" onClick={() => setPrevDate(dayjs().subtract(1, 'days'))}>1 day ago</span>
                 <span className="link" onClick={() => setPrevDate(dayjs().subtract(2, 'days'))}>2 days ago</span>
                 <span className="link" onClick={() => setPrevDate(dayjs().subtract(1, 'weeks'))}>1 week ago</span>
             </div>
             <details>
-                <summary style={{cursor: 'pointer'}}>
+                <summary style={{ cursor: 'pointer' }}>
                     Ignore list
                 </summary>
                 <div
-                    style={{display: 'flex', flexWrap: 'wrap', gap: '0.5em', flexDirection: 'row', marginTop: '0.5em'}}>
+                    style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5em', flexDirection: 'row', marginTop: '0.5em' }}>
                     {toIgnore.map(record => <div key={record.type}>
                         <span className="clickable pill" onClick={async () => await unignore(record)}>
                             {record.name}
@@ -268,38 +263,38 @@ export default function GpuTable({db}: Props) {
                     </div>)}
                 </div>
             </details>
-            <div style={{display: "flex", flexDirection: "row", gap: "0.5em"}}>
+            <div style={{ display: "flex", flexDirection: "row", gap: "0.5em" }}>
                 <label htmlFor="minPerformance">Min performance</label>
                 <input id="minPerformance" type={'number'} value={minPerformance}
-                       onChange={(e) => setMinPerformance(isNaN(Number.parseInt(e.target.value)) ? 0 : Number.parseInt(e.target.value))}/>
+                    onChange={(e) => setMinPerformance(isNaN(Number.parseInt(e.target.value)) ? 0 : Number.parseInt(e.target.value))} />
                 <label htmlFor="maxPrice">Max price</label>
                 <input id="maxPrice" type={'number'} value={maxPrice}
-                       onChange={(e) => setMaxPrice(isNaN(Number.parseInt(e.target.value)) ? 999 : Number.parseInt(e.target.value))}/>
+                    onChange={(e) => setMaxPrice(isNaN(Number.parseInt(e.target.value)) ? 999 : Number.parseInt(e.target.value))} />
                 <label htmlFor="showOnlyAvailable">Show only available</label>
                 <input id="showOnlyAvailable" type={'checkbox'} checked={showOnlyAvailable}
-                       onChange={(e) => setShowOnlyAvailable(e.target.checked)}/>
+                    onChange={(e) => setShowOnlyAvailable(e.target.checked)} />
             </div>
-            <div className="responsive-row-or-col" style={{gap: "0.5em", justifyContent: 'center'}}>
+            <div className="responsive-row-or-col" style={{ gap: "0.5em", justifyContent: 'center' }}>
                 <table className="maintable">
                     <thead>
-                    <tr>
-                        <td rowSpan={2}>Type</td>
-                        <td rowSpan={2}>Performance</td>
-                        <td rowSpan={2}>MSRP</td>
-                        <td colSpan={2}>Cheapest</td>
-                        <td rowSpan={2}>{prevDate.format('YYYY-MM-DD')}</td>
-                        <td rowSpan={2}>Curr Price</td>
-                        <td rowSpan={2}>frame/price</td>
-                        <td rowSpan={2}>δ</td>
-                    </tr>
-                    <tr>
-                        <td>ever</td>
-                        <td>30d</td>
-                    </tr>
+                        <tr>
+                            <td rowSpan={2}>Type</td>
+                            <td rowSpan={2}>Performance</td>
+                            <td rowSpan={2}>MSRP</td>
+                            <td colSpan={2}>Cheapest</td>
+                            <td rowSpan={2}>{prevDate.format('YYYY-MM-DD')}</td>
+                            <td rowSpan={2}>Curr Price</td>
+                            <td rowSpan={2}>frame/price</td>
+                            <td rowSpan={2}>δ</td>
+                        </tr>
+                        <tr>
+                            <td>ever</td>
+                            <td>30d</td>
+                        </tr>
                     </thead>
                     <tbody>
-                    {toShow.map(record => <GpuTableRow db={db} record={record} refresh={refreshValues} key={record.type}
-                                                       onClicked={() => ignore(record)}/>)}
+                        {toShow.map(record => <GpuTableRow db={db} record={record} refresh={refreshValues} key={record.type}
+                            onClicked={() => ignore(record)} />)}
                     </tbody>
                 </table>
                 <Chart db={db} records={toShow} shouldShow={showChart} />
