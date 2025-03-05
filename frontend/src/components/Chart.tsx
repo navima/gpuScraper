@@ -43,7 +43,7 @@ export default function Chart({ db, records, shouldShow }: Props) {
             WHERE type in (${records.map(r => `'${r.type}'`).join(',')}) 
                 AND InsertTime > $startDate
             GROUP BY type, timePeriod
-            ORDER BY type`,
+            `,
             {
                 "$startDate": startTime?.format('YYYY-MM-DD') ?? '2000-01-01',
                 "$interval": interval

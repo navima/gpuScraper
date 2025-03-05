@@ -6,7 +6,7 @@ import { FiLink2 } from "react-icons/fi";
 
 function deltaToColorString(delta: number | undefined): string {
     if (delta === undefined) return "initial";
-    if (delta > 0) return "rgb(255,128,128)";
+    if (delta > 1000) return "rgb(255,128,128)";
     if (delta < 0) return "rgb(128,255,128)";
     else return "yellow";
 }
@@ -42,7 +42,7 @@ export default function GpuTableRow({ record, onClicked, refresh }: Props) {
         url
     } = record;
 
-    const delta = prevPrice! && currPrice! ? currPrice - prevPrice : 0;
+    const delta = cheapestPastMonth! && currPrice! ? currPrice - cheapestPastMonth : 0;
 
     return <>
         <tr>
@@ -50,9 +50,11 @@ export default function GpuTableRow({ record, onClicked, refresh }: Props) {
                 <span style={{ display: "flex", alignItems: "center" }}>
                     <FaEyeSlash size={12} color={'gray'} />
                     {name}
-                    <a style={{ marginLeft: "auto" }} href={url} target="_blank" rel="noreferrer">
-                        <FiLink2 size={12} color={'blue'} />
-                    </a>
+                    {url &&
+                        <a style={{ marginLeft: "auto" }} href={url} target="_blank" rel="noreferrer">
+                            <FiLink2 size={12} color={'blue'} />
+                        </a>
+                    }
                 </span>
             </td>
             <td>{performance}</td>

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Database } from "sql.js";
 import dayjs from "dayjs";
 import Cookies from "js-cookie";
@@ -14,11 +14,6 @@ function compare(a: string, b: string) {
     if (a > b)
         return 1
     return 0
-}
-
-function sortRecords(records: Record[]): Record[] {
-    records.sort((a, b) => compare(a.name, b.name))
-    return records
 }
 
 export function parseIntOrUndefined(s: string | undefined | null): number | undefined {
@@ -40,6 +35,7 @@ export default function GpuTable({ db }: Props) {
     const [minPerformance, setMinPerformance] = useState(0);
     const [maxPrice, setMaxPrice] = useState(Infinity);
     const [showOnlyAvailable, setShowOnlyAvailable] = useState(false);
+    const [orderColumn, setOrderColumn] = useState('name');
 
     const toIgnore = records.filter(r => r.ignored)
     const toShow = records.filter(r => !r.ignored
@@ -100,6 +96,13 @@ export default function GpuTable({ db }: Props) {
         persistIgnored(records) // synchronise cookies and queryString
     }, [records])
 
+    const sortRecords = useCallback((records: Record[]) => {
+        if (orderColumn === 'performance')
+            return records.sort((a, b) => (a.performance ?? 0) - (b.performance ?? 0))
+        records.sort((a, b) => compare(a.name, b.name))
+        return records
+    }, [orderColumn])
+
     // Query records
     useEffect(() => {
         const f = time("mass query finished in {0}", async () => {
@@ -108,7 +111,7 @@ export default function GpuTable({ db }: Props) {
                 full join (select distinct type from articles) using(type)
                 left join (select modeltype as type, value from benchmarks b where b.type = '1440p;ultra;raster') using(type)
             `)?.[0]
-            setRecords(sortRecords(pseudoRecords.values.map(pr => {
+            setRecords(pseudoRecords.values.map(pr => {
                 const [type, name, msrp, performance] = pr;
                 const record = new Record();
                 record.type = type?.toString() ?? "";
@@ -117,7 +120,7 @@ export default function GpuTable({ db }: Props) {
                 if (msrp === 0) record.msrp = undefined;
                 record.performance = parseIntOrUndefined(performance?.toString())
                 return record;
-            })))
+            }))
         })
         f()
     }, [db])
@@ -127,62 +130,50 @@ export default function GpuTable({ db }: Props) {
             console.log(`started per-record queries for ${records.length} types`)
             records.filter(r => !r.ignored).forEach(record => {
                 const startTime = performance.now();
-                record.prevDate = prevDate;
-                const currPriceQueryRes = db.exec(
+                const queryRes = db.exec(
                     `
-                        SELECT price, url
+                    WITH filtered_articles AS (
+                        SELECT id, price, url, type, insertTime
                         FROM articles
                         WHERE type = $type
-                        ORDER BY insertTime DESC LIMIT 1
-                    `,
-                    { "$type": record.type })?.[0]
-                record.currentPrice = parseIntOrUndefined(currPriceQueryRes?.values?.[0]?.[0]?.toString());
-                record.url = currPriceQueryRes?.values?.[0]?.[1]?.toString();
-
-                const prevPriceQueryRes = db.exec(
-                    `
-                        SELECT price
-                        FROM articles
-                        WHERE type = $type
-                          AND insertTime < $prevDate
-                        ORDER BY insertTime DESC LIMIT 1
-                    `,
-                    {
-                        "$type": record.type,
-                        "$prevDate": prevDate.add(1, 'day').format("YYYY-MM-DD")
-                    })?.[0]
-                record.previousPrice = parseIntOrUndefined(prevPriceQueryRes?.values?.[0]?.[0]?.toString());
-
-                const cheapestPastMonth = db.exec(
-                    `
-                        SELECT min(price)
-                        FROM articles
-                        WHERE price IS NOT NULL
-                          AND price <> 0
-                          AND type = $type
-                          AND insertTime > $prevDate
-                        ORDER BY insertTime DESC
+                        AND price IS NOT NULL AND price <> 0 
+                        ORDER BY id DESC
+                    ),
+                    latest AS (
+                        SELECT price AS currentPrice, url AS currentUrl
+                        FROM filtered_articles 
+                        LIMIT 1
+                    ),
+                    previous AS (
+                        SELECT price AS previousPrice
+                        FROM filtered_articles
+                        WHERE insertTime < $prevDate
+                        LIMIT 1
+                    ),
+                    cheapestMonth AS (
+                        SELECT MIN(price) AS cheapestPastMonth
+                        FROM filtered_articles
+                        WHERE insertTime > $monthAgo
+                    ),
+                    cheapestAllTime AS (
+                        SELECT MIN(price) AS cheapestEver
+                        FROM filtered_articles
+                    )
+                    SELECT * 
+                    FROM latest, previous, cheapestMonth, cheapestAllTime;
                     `,
                     {
                         "$type": record.type,
-                        "$prevDate": dayjs().subtract(1, 'month').format("YYYY-MM-DD")
-                    })?.[0]
-                record.cheapestPastMonth = parseIntOrUndefined(cheapestPastMonth?.values?.[0]?.[0]?.toString());
+                        "$prevDate": prevDate.add(1, 'day').format("YYYY-MM-DD"),
+                        "$monthAgo": dayjs().subtract(1, 'month').format("YYYY-MM-DD")
+                    }
+                )?.[0];
 
-                const cheapestEver = db.exec(
-                    `
-                        SELECT min(price)
-                        FROM articles
-                        WHERE price IS NOT NULL
-                          AND price <> 0
-                          AND type = $type
-                        ORDER BY insertTime DESC
-                    `,
-                    {
-                        "$type": record.type,
-                        "$prevDate": dayjs().subtract(1, 'month').format("YYYY-MM-DD")
-                    })?.[0]
-                record.cheapestEver = parseIntOrUndefined(cheapestEver?.values?.[0]?.[0]?.toString());
+                record.currentPrice = parseIntOrUndefined(queryRes?.values?.[0]?.[0]?.toString());
+                record.url = queryRes?.values?.[0]?.[1]?.toString();
+                record.previousPrice = parseIntOrUndefined(queryRes?.values?.[0]?.[2]?.toString());
+                record.cheapestPastMonth = parseIntOrUndefined(queryRes?.values?.[0]?.[3]?.toString());
+                record.cheapestEver = parseIntOrUndefined(queryRes?.values?.[0]?.[4]?.toString());
 
                 console.log(`${record.type} query finished in ${performance.now() - startTime}`)
             });
@@ -274,6 +265,11 @@ export default function GpuTable({ db }: Props) {
                 <label htmlFor="showOnlyAvailable">Show only available</label>
                 <input id="showOnlyAvailable" type={'checkbox'} checked={showOnlyAvailable}
                     onChange={(e) => setShowOnlyAvailable(e.target.checked)} />
+                <label htmlFor="orderColumn">Order by</label>
+                <select id="orderColumn" value={orderColumn} onChange={e => setOrderColumn(e.target.value)}>
+                    <option value="name">Name</option>
+                    <option value="performance">Performance</option>
+                </select>
             </div>
             <div className="responsive-row-or-col" style={{ gap: "0.5em", justifyContent: 'center' }}>
                 <table className="maintable">
@@ -294,7 +290,7 @@ export default function GpuTable({ db }: Props) {
                         </tr>
                     </thead>
                     <tbody>
-                        {toShow.map(record => <GpuTableRow db={db} record={record} refresh={refreshValues} key={record.type}
+                        {sortRecords(toShow).map(record => <GpuTableRow db={db} record={record} refresh={refreshValues} key={record.type}
                             onClicked={() => ignore(record)} />)}
                     </tbody>
                 </table>
