@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from "react";
+import React, { useEffect, useState } from "react";
 import "./styles.css";
 import initSqlJs from "sql.js";
 import GpuTable from "./components/table/GpuTable";
@@ -56,7 +56,7 @@ export default function App() {
                 const chunks = [];
                 let downloaded = 0;
                 while (true) {
-                    const {value, done} = await reader.read();
+                    const { value, done } = await reader.read();
                     chunks.push(value);
                     if (done) break;
                     downloaded += value.length;
@@ -67,7 +67,7 @@ export default function App() {
                 console.log("done streaming db");
                 const buf = await new Blob(chunks).arrayBuffer();
                 // noinspection JSCheckFunctionSignatures
-                const SQL = await initSqlJs({locateFile: () => sqlWasm});
+                const SQL = await initSqlJs({ locateFile: () => sqlWasm });
                 setDb(new SQL.Database(new Uint8Array(buf)));
             } catch (err) {
                 setError(err);
@@ -78,11 +78,10 @@ export default function App() {
 
     if (db) {
         return <div>
-            <GpuTable db={db}/>
-            <SQLRepl db={db}/>
+            <GpuTable db={db} />
+            <SQLRepl db={db} />
             <footer>
-                <p>Performance data sourced from HardwareUnboxed 1440p, High, RTX-on, DLSS-off results, then
-                    normalized.</p>
+                <p>Performance data sourced from <a href="https://www.tomshardware.com/reviews/gpu-hierarchy,4388.html">Tomshardware 1440p, Ultra, Raster results</a>.</p>
                 <p>MSRP is in USD, sourced from Wikipedia</p>
                 <p>All other prices are in 1000HUF, sourced from Arukereso.hu</p>
             </footer>
@@ -92,8 +91,8 @@ export default function App() {
         return <pre className="middle-message">{downloaded}</pre>;
     else
         return <pre className="middle-message">
-			<div>Downloading database...</div>
-			<div>{asciiProgressBar()}</div>
-			<div>{(downloaded / mb).toFixed()}/{(toDownload / mb).toFixed()} MB</div>
-		</pre>;
+            <div>Downloading database...</div>
+            <div>{asciiProgressBar()}</div>
+            <div>{(downloaded / mb).toFixed()}/{(toDownload / mb).toFixed()} MB</div>
+        </pre>;
 }

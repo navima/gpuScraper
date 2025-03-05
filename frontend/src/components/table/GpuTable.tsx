@@ -106,7 +106,7 @@ export default function GpuTable({ db }: Props) {
             const pseudoRecords = db.exec(`
                 select Type, Name, MSRP, value from models
                 full join (select distinct type from articles) using(type)
-                full join (select modeltype as type, value from benchmarks b where b.type = '1440p;high;rtx') using(type)
+                left join (select modeltype as type, value from benchmarks b where b.type = '1440p;ultra;raster') using(type)
             `)?.[0]
             setRecords(sortRecords(pseudoRecords.values.map(pr => {
                 const [type, name, msrp, performance] = pr;
@@ -130,13 +130,14 @@ export default function GpuTable({ db }: Props) {
                 record.prevDate = prevDate;
                 const currPriceQueryRes = db.exec(
                     `
-                        SELECT price
+                        SELECT price, url
                         FROM articles
                         WHERE type = $type
                         ORDER BY insertTime DESC LIMIT 1
                     `,
                     { "$type": record.type })?.[0]
                 record.currentPrice = parseIntOrUndefined(currPriceQueryRes?.values?.[0]?.[0]?.toString());
+                record.url = currPriceQueryRes?.values?.[0]?.[1]?.toString();
 
                 const prevPriceQueryRes = db.exec(
                     `

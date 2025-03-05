@@ -2,6 +2,7 @@
 import { Database } from "sql.js";
 import Record from "./Record";
 import { FaEyeSlash } from "react-icons/fa6";
+import { FiLink2 } from "react-icons/fi";
 
 function deltaToColorString(delta: number | undefined): string {
     if (delta === undefined) return "initial";
@@ -29,7 +30,7 @@ interface Props {
     refresh?: any
 }
 
-export default function GpuTableRow({record, onClicked, refresh}: Props) {
+export default function GpuTableRow({ record, onClicked, refresh }: Props) {
     const {
         name,
         msrp,
@@ -37,24 +38,31 @@ export default function GpuTableRow({record, onClicked, refresh}: Props) {
         previousPrice: prevPrice,
         currentPrice: currPrice,
         cheapestPastMonth,
-        cheapestEver
+        cheapestEver,
+        url
     } = record;
 
     const delta = prevPrice! && currPrice! ? currPrice - prevPrice : 0;
 
     return <>
         <tr>
-            <td className="table-align-left clickable" onClick={() => onClicked()}><FaEyeSlash size={12}
-                                                                                               color={'gray'}/>&nbsp;{name}
+            <td className="table-align-left clickable" onClick={onClicked}>
+                <span style={{ display: "flex", alignItems: "center" }}>
+                    <FaEyeSlash size={12} color={'gray'} />
+                    {name}
+                    <a style={{ marginLeft: "auto" }} href={url} target="_blank" rel="noreferrer">
+                        <FiLink2 size={12} color={'blue'} />
+                    </a>
+                </span>
             </td>
             <td>{performance}</td>
             <td>{msrp}</td>
             <td>{formatPrice(cheapestEver)}</td>
             <td>{formatPrice(cheapestPastMonth)}</td>
             <td>{formatPrice(prevPrice)}</td>
-            <td style={{backgroundColor: cheapestPastMonth! && currPrice! && formatPrice(cheapestPastMonth) == formatPrice(currPrice) ? "rgb(128,255,128)" : "initial"}}>{formatPrice(currPrice)}</td>
-            <td>{formatDecimal(1000 * (record.performance ?? 0) / (record.currentPrice ?? 1))}</td>
-            <td style={{backgroundColor: deltaToColorString(delta)}}>{formatPrice(delta)}</td>
+            <td style={{ backgroundColor: cheapestPastMonth! && currPrice! && formatPrice(cheapestPastMonth) == formatPrice(currPrice) ? "rgb(128,255,128)" : "initial" }}>{formatPrice(currPrice)}</td>
+            <td>{formatDecimal(1000 * (performance ?? 0) / (currPrice ?? 1))}</td>
+            <td style={{ backgroundColor: deltaToColorString(delta) }}>{formatPrice(delta)}</td>
         </tr>
     </>
 }
