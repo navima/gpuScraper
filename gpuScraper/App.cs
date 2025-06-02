@@ -182,12 +182,15 @@ internal partial class App
         HtmlDocument doc = new();
         doc.LoadHtml(typesPageContent);
         var nodes = doc.DocumentNode.SelectNodes(@$"//div[contains(@class, 'property-box')][{typeCategoryIndex}]//li/@data-akvalue");
-        return nodes.Select(node =>
-        {
-            var name = node.GetAttributeValue(@"data-akvalue", null);
-            var url = node.SelectSingleNode(@".//a/@href").GetAttributeValue("href", null);
-            return new Type(name, url);
-        }).ToList();
+        return nodes
+            .Select(node =>
+            {
+                var name = node.GetAttributeValue(@"data-akvalue", null);
+                var url = node.SelectSingleNode(@".//a/@href")?.GetAttributeValue("href", null);
+                return new Type(name, url);
+            })
+            .Where(type => type.Url != null)
+            .ToList();
     }
 
     [GeneratedRegex("[^0-9]*")]
